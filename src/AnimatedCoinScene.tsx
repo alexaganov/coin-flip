@@ -1,15 +1,22 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BezierEasing from "bezier-easing";
-import { Vector3 } from "three";
-import { useSpring, animated, config } from "@react-spring/three";
-import { useDrag } from "@use-gesture/react";
+import { Mesh, Vector3 } from "three";
+import { useSpring, animated, config, easings } from "@react-spring/three";
+import { FullGestureState, useDrag } from "@use-gesture/react";
 import {
   RenderTexture,
   Text,
   PerspectiveCamera,
   ContactShadows,
+  Outlines,
 } from "@react-three/drei";
+import {
+  DotScreen,
+  EffectComposer,
+  Outline,
+} from "@react-three/postprocessing";
+import { BlendFunction, KernelSize } from "postprocessing";
 
 const getRandomBoolean = () => {
   // await delay(1500);
@@ -22,10 +29,10 @@ const getRandomBoolean = () => {
 const HALF_PI = Math.PI / 2;
 const TWO_PI = Math.PI * 2;
 
-const COIN_STATE = {
+const APP_STATE = {
   CHOICE: "CHOICE",
   THROW: "THROW",
-  END: "END",
+  RESTART: "RESTART",
 } as const;
 
 // const INITIAL_POSITION: [number, number, number] = [0, 0.5, 0] as const;
@@ -68,16 +75,25 @@ const getChoice = (rotation: number): ChoiceType => {
   return CHOICE.TAIL;
 };
 
+const getChoiceRotation = (choice: ChoiceType): number => {
+  if (choice === CHOICE.HEAD) {
+    return 0;
+  }
+
+  return Math.PI;
+};
+
 interface CoinProps {
   size: number;
   width: number;
+  groundPosition: [number, number, number];
   initialPosition: [number, number, number];
 }
 
-const Coin = ({ size, width, initialPosition }: CoinProps) => {
-  const [coinState, setCoinState] = useState<
-    (typeof COIN_STATE)[keyof typeof COIN_STATE]
-  >(COIN_STATE.CHOICE);
+const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
+  const [appState, setAppState] = useState<
+    (typeof APP_STATE)[keyof typeof APP_STATE]
+  >(APP_STATE.CHOICE);
 
   const [choice, setChoice] = useState<ChoiceType>(CHOICE.HEAD);
 
@@ -86,209 +102,270 @@ const Coin = ({ size, width, initialPosition }: CoinProps) => {
   const { size: canvasSize, viewport } = useThree();
   const aspect = canvasSize.width / viewport.width;
 
-  const [{ rotation, position }, api] = useSpring(() => ({
-    position: [...initialPosition],
-    rotation: [...INITIAL_ROTATION],
-    config: {
-      friction: 10,
-    },
-  }));
+  const [{ rotation, position }, api] = useSpring(
+    () => ({
+      position: [...initialPosition],
+      rotation: [...INITIAL_ROTATION],
+    }),
+    []
+  );
 
   useEffect(() => {
-    const hanldeTrow = async () => {
-      const currentRotation = rotation.get();
-
-      api({
-        from: {
-          rotation: [...currentRotation],
-        },
-        to: {
-          rotation: [
-            currentRotation[0] - Math.PI * 2,
-            currentRotation[1],
-            currentRotation[2],
-          ],
-        },
-        loop: true,
-        config: {
-          bounce: 0,
-        },
-      });
-
-      const currentPosition = position.get();
-
-      await api({
-        to: async (next) => {
-          await next({
-            position: [
-              currentPosition[0],
-              currentPosition[1] + 10,
-              currentPosition[2],
-            ],
-            config: {
-              // friction: 25,
-              // velocity: 0,
-              easing: BezierEasing(0.05, 0.95, 0.205, 0.965),
-              duration: 1000,
-            },
-          });
-
-          await delay(50);
-
-          await next({
-            position: [...initialPosition],
-            config: {
-              easing: BezierEasing(0.93, 0.06, 0.84, 0.495),
-              duration: 750,
-            },
-          });
-
-          const currentRotation = rotation.get();
-
-          const rotateXTillFace =
-            currentRotation[0] - (Math.PI + (currentRotation[0] % Math.PI));
-
-          console.log((rotateXTillFace / Math.PI) % 2);
-
-          const isTail = (rotateXTillFace / Math.PI) % 2 === 0;
-
-          console.log({ isTail });
-          // rotateXTillFace +=
-          // const ranfomBoolean = getRandomBoolean();
-
-          await next({
-            position: [
-              initialPosition[0],
-              initialPosition[1] - size / 2 + width / 2,
-              initialPosition[2],
-            ],
-            rotation: [rotateXTillFace, currentRotation[1], currentRotation[2]],
-            config: {
-              // easing: BezierEasing(0.93, 0.06, 0.84, 0.495),
-              duration: 5000,
-            },
-          });
-        },
-        config: {
-          bounce: 0,
-        },
-      });
-
-      console.log(" on ground ");
-    };
-
-    if (coinState === COIN_STATE.THROW) {
-      hanldeTrow();
+    if (appState !== APP_STATE.RESTART) {
+      return;
     }
 
-    // window.addEventListener("click", handleEndState);
+    const handlePointerUp = () => {
+      api({
+        to: {
+          position: [...initialPosition],
+          rotation: [...INITIAL_ROTATION],
+        },
+        config: config.gentle,
+        onResolve: () => {
+          setAppState(APP_STATE.CHOICE);
+        },
+      });
+    };
 
-    // return () => {
-    //   window.removeEventListener("click", handleEndState);
-    // };
-  }, [coinState, position, rotation, size, width, initialPosition, api]);
+    window.addEventListener("click", handlePointerUp, {
+      once: true,
+    });
 
-  useDrag(
-    ({ movement, direction, down, memo, swipe }) => {
-      if (swipe[0] !== 0) {
-        const [x, y, z] = rotation.get();
+    return () => {
+      window.removeEventListener("click", handlePointerUp);
+    };
+  }, [appState, api, initialPosition, choice, rotation]);
 
-        const updateZ = getClosestSideZ(z + swipe[0] * Math.PI);
+  useEffect(() => {
+    if (appState !== APP_STATE.THROW) {
+      return;
+    }
 
-        setChoice(getChoice(updateZ));
+    const currentRotation = rotation.get();
 
-        api({
-          rotation: [x, y, updateZ],
+    // simulate coin rotation
+    api({
+      from: {
+        rotation: [...currentRotation],
+      },
+      to: {
+        rotation: [
+          currentRotation[0] - Math.PI * 2,
+          currentRotation[1],
+          currentRotation[2],
+        ],
+      },
+      loop: true,
+      config: {
+        bounce: 0,
+      },
+    });
+
+    const currentPosition = position.get();
+
+    api({
+      to: async (next) => {
+        await next({
+          position: [
+            currentPosition[0],
+            currentPosition[1] + 10,
+            currentPosition[2],
+          ],
           config: {
-            ...config.default,
-            friction: 15,
+            easing: BezierEasing(0.05, 0.95, 0.205, 0.965),
+            duration: 1000,
           },
         });
 
+        await delay(50);
+
+        await next({
+          position: [
+            groundPosition[0],
+            groundPosition[1] + size / 2,
+            groundPosition[2],
+          ],
+          config: {
+            easing: BezierEasing(0.93, 0.06, 0.84, 0.495),
+            duration: 750,
+          },
+        });
+
+        const currentRotation = rotation.get();
+
+        let rotateXTillFace =
+          currentRotation[0] - (Math.PI + (currentRotation[0] % Math.PI));
+
+        // because each choice rotates coin on some angle
+        // we should consider it to determine current side
+        const isChoiceTail = choice === CHOICE.TAIL;
+
+        const isTail = (rotateXTillFace / Math.PI) % 2 === Number(isChoiceTail);
+
+        const randomBoolean = getRandomBoolean();
+
+        if (isTail !== randomBoolean) {
+          rotateXTillFace -= Math.PI;
+        }
+
+        await next({
+          position: [
+            groundPosition[0],
+            groundPosition[1] + width / 2,
+            groundPosition[2],
+          ],
+          rotation: [rotateXTillFace, currentRotation[1], currentRotation[2]],
+          config: {
+            easing: easings.easeInOutBounce,
+            duration: 300,
+          },
+          onResolve: () => {
+            setAppState(APP_STATE.RESTART);
+          },
+        });
+      },
+      config: {
+        bounce: 0,
+      },
+    });
+  }, [
+    appState,
+    position,
+    rotation,
+    size,
+    width,
+    groundPosition,
+    initialPosition,
+    choice,
+    api,
+  ]);
+
+  const choiceConfig = {
+    tension: 100,
+    friction: 10,
+    mass: 1,
+    // becaus config is merging every time,
+    // bounce can be 0 which removes wobble effect
+    bounce: undefined,
+  };
+
+  const handleHorizontalSwipe = ({ swipe }: FullGestureState<"drag">) => {
+    const [x, y, z] = rotation.get();
+
+    const updateZ = getClosestSideZ(z + swipe[0] * Math.PI);
+
+    setChoice(getChoice(updateZ));
+
+    api({
+      rotation: [x, y, updateZ],
+      config: choiceConfig,
+    });
+  };
+
+  const handleHorizontalDrag = ({
+    movement,
+    down,
+    memo,
+  }: Omit<FullGestureState<"drag">, "memo"> & { memo?: { rotateZ: number } }): {
+    rotateZ: number;
+  } => {
+    const [x, y, z] = rotation.get();
+
+    const rotateZStart = memo?.rotateZ ?? z;
+
+    let updatedZ = rotateZStart + movement[0] / aspect;
+
+    if (!down) {
+      updatedZ = getClosestSideZ(updatedZ);
+
+      setChoice(getChoice(updatedZ));
+    }
+
+    api({
+      rotation: [x, y, updatedZ],
+      config: choiceConfig,
+    });
+
+    return {
+      rotateZ: rotateZStart,
+    };
+  };
+
+  const handleVerticalDrag = ({
+    down,
+    movement,
+    cancel,
+  }: FullGestureState<"drag">) => {
+    const [, y, z] = rotation.get();
+
+    const updatedX = INITIAL_ROTATION[0] + movement[1] / aspect;
+
+    if (updatedX <= -Math.PI) {
+      setAppState(APP_STATE.THROW);
+
+      // after toggling useDrag's enabled prop from false to true,
+      // the down param is still in true causing unintentional interaction
+      // to prevent this we should cancel before setting enabled to false
+      cancel();
+
+      return;
+    }
+
+    if (down) {
+      const updatePositionY =
+        initialPosition[1] + (movement[1] * -1) / aspect / 2;
+
+      api({
+        position: [initialPosition[0], updatePositionY, initialPosition[2]],
+        rotation: [updatedX, y, getClosestSideZ(z)],
+      });
+    } else {
+      api({
+        position: [...initialPosition],
+        rotation: [INITIAL_ROTATION[0], y, getClosestSideZ(z)],
+      });
+    }
+  };
+
+  useDrag(
+    (state) => {
+      // don't use enabled param for useDrag because when it's toggled back
+      // down param can be still in true even though mouse/pointer is not active
+      if (appState !== APP_STATE.CHOICE) {
         return;
       }
 
-      let {
-        initialRotateZ,
-        currentAxis,
-      }: {
-        initialRotateZ?: number;
-        initialRotateX?: number;
-        currentAxis?: "x" | "y" | null;
-      } = memo || {};
-      if (!currentAxis) {
-        currentAxis = getActiveAxis(direction);
+      if (state.swipe[0] !== 0) {
+        return handleHorizontalSwipe(state);
       }
 
-      const isChoice = currentAxis === "x";
+      const { movement, direction, down, memo } = state;
 
-      if (isChoice) {
-        const [x, y, z] = rotation.get();
-
-        const initialZ = initialRotateZ ?? z;
-
-        let updatedZ = initialZ + movement[0] / aspect;
-
-        if (!down) {
-          updatedZ = getClosestSideZ(z);
-
-          setChoice(getChoice(updatedZ));
-
-          currentAxis = null;
-        }
-
-        api({
-          rotation: [x, y, updatedZ],
-          config: {
-            ...config.default,
-            friction: 10,
-          },
-        });
-
-        return {
-          initialRotateZ: initialZ,
-          currentAxis,
-        };
-      }
-
-      const isThrow = currentAxis === "y" && movement[1] < 0;
-
-      if (isThrow) {
-        const [, y, z] = rotation.get();
-
-        const updatedX = INITIAL_ROTATION[0] + movement[1] / aspect;
-
-        if (updatedX <= -Math.PI) {
-          setCoinState(COIN_STATE.THROW);
-
-          return;
-        }
-
-        if (down) {
-          const updatePositionY =
-            initialPosition[1] + (movement[1] * -1) / aspect / 2;
-
-          api({
-            position: [initialPosition[0], updatePositionY, initialPosition[2]],
-            rotation: [updatedX, y, getClosestSideZ(z)],
-          });
-        } else {
-          api({
-            position: [...initialPosition],
-            rotation: [INITIAL_ROTATION[0], y, getClosestSideZ(z)],
-          });
-
-          currentAxis = null;
-        }
-      }
-
-      return {
-        currentAxis,
+      let updatedMemo = {
+        ...memo,
+        activeAxis: memo?.activeAxis ?? getActiveAxis(direction),
+      } as ReturnType<typeof handleHorizontalDrag> & {
+        activeAxis: "x" | "y" | null;
       };
+
+      if (updatedMemo.activeAxis === "x") {
+        updatedMemo = {
+          ...updatedMemo,
+          ...handleHorizontalDrag(state),
+        };
+      } else if (updatedMemo.activeAxis === "y" && movement[1] < 0) {
+        handleVerticalDrag(state);
+      }
+
+      if (!down) {
+        return;
+      }
+
+      return updatedMemo;
     },
     {
       target: window,
-      enabled: coinState === COIN_STATE.CHOICE,
     }
   );
 
@@ -296,9 +373,12 @@ const Coin = ({ size, width, initialPosition }: CoinProps) => {
     camera.lookAt(new Vector3(...position.get()));
   });
 
+  const meshRef = useRef<Mesh>(null);
+
   return (
     <>
       <animated.mesh
+        ref={meshRef}
         rotation={rotation}
         position={position}
         receiveShadow
@@ -308,12 +388,7 @@ const Coin = ({ size, width, initialPosition }: CoinProps) => {
 
         {/* <meshNormalMaterial /> */}
 
-        <meshStandardMaterial
-          metalness={0.5}
-          roughness={0.2}
-          color="orange"
-          attach="material-0"
-        >
+        <meshStandardMaterial transparent color="white" attach="material-0">
           {/* <color attach="background" args={["orange"]} />
           <RenderTexture attach="map">
           </RenderTexture> */}
@@ -321,8 +396,6 @@ const Coin = ({ size, width, initialPosition }: CoinProps) => {
 
         <meshStandardMaterial
           // color="red"
-          metalness={0.5}
-          roughness={0.2}
           attach="material-1"
         >
           <RenderTexture attach="map">
@@ -333,7 +406,9 @@ const Coin = ({ size, width, initialPosition }: CoinProps) => {
               position={[0, 0, 5]}
             />
             <color attach="background" args={["red"]} />
-            <Text rotation={[0, 0, -HALF_PI]}>Tail</Text>
+            {/* <Text color="black" rotation={[0, 0, -HALF_PI]}>
+              ❀
+            </Text> */}
           </RenderTexture>
         </meshStandardMaterial>
 
@@ -350,9 +425,18 @@ const Coin = ({ size, width, initialPosition }: CoinProps) => {
               position={[0, 0, 5]}
             />
             <color attach="background" args={["blue"]} />
-            <Text rotation={[0, 0, -HALF_PI]}>Head</Text>
+            {/* <Text
+              lineHeight={1}
+              color="black"
+              fontSize={2}
+              rotation={[0, 0, -HALF_PI]}
+            >
+              ✦꥟❂✹
+            </Text> */}
           </RenderTexture>
         </meshStandardMaterial>
+
+        <Outlines thickness={5} color="black" />
       </animated.mesh>
     </>
   );
@@ -367,11 +451,16 @@ export const AnimatedCoinScene = () => {
         position={[0, -0.000001, 0]}
       />
 
-      <Coin initialPosition={[0, 1, 0]} size={2} width={0.1} />
+      <Coin
+        groundPosition={[0, 0, 0]}
+        initialPosition={[0, 3, 0]}
+        size={2}
+        width={0.1}
+      />
 
       <ContactShadows
         position={[0, 0, 0]}
-        scale={20}
+        scale={10}
         blur={0.4}
         opacity={0.2}
       />
