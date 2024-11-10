@@ -1,3 +1,14 @@
+# 3D Coin Flip Simulator
+
+## TODO
+
+- [ ] Improve environment (right now it's too plain)
+- [ ] Add proper 3d coin model
+- [ ] Add symbols for each side of the 3d coin
+- [ ] Add effects to the 3d coin model (shine, reflection etc.)
+- [ ] Refactor to improve readability (too much code in single file)
+- [ ] When coin on the ground move camera closer to it 
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -28,3 +39,4 @@ export default {
 - Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
 - Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
 - Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+

@@ -1,81 +1,122 @@
 import { Canvas } from "@react-three/fiber";
-import { Environment, Stage } from "@react-three/drei";
 
 import { AnimatedCoinScene } from "./AnimatedCoinScene";
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import clsx from "clsx";
+import { APP_STATE, CHOICE } from "./type";
+import { useAppStore } from "./store";
+import { useTransition } from "react-spring";
+import { animated } from "@react-spring/web";
 
-const App = () => {
-  const [history, setHistory] = useState<
-    { id: string; choice: boolean; outcome: boolean }[]
-  >([
-    {
-      id: "1",
-      choice: true,
-      outcome: true,
-    },
-    {
-      id: "2",
-      choice: false,
-      outcome: false,
-    },
-    {
-      id: "3",
-      choice: true,
-      outcome: false,
-    },
-    {
-      id: "4",
-      choice: false,
-      outcome: true,
-    },
-  ]);
+const HistoryListChoiceItem = ({ className }: { className: string }) => {
+  const appState = useAppStore((state) => state.appState);
+  const currentChoice = useAppStore((state) => state.currentChoice);
 
-  const choiceClassName = "size-8 shrink-0 rounded-full border";
+  const isCurrentChoiceHead = currentChoice === CHOICE.HEAD;
 
   return (
-    <main className="relative h-full w-full">
-      <Canvas
-        shadows
-        camera={{ position: [0, 3, 5] }}
-        className="touch-none select-none"
-      >
-        {/* <directionalLight position={[1, 10, 20]} /> */}
-        <ambientLight intensity={5} />
-        {/* <Environment preset="studio" /> */}
+    <li
+      className={clsx(className, "border transition-colors", {
+        "border-red-700": !isCurrentChoiceHead,
+        "border-blue-700": isCurrentChoiceHead,
+        "animate-[spin_10s_linear_infinite] border-dashed":
+          appState === APP_STATE.CHOICE,
+      })}
+    >
+      <span
+        className={clsx("bg-current rounded-full size-3.5 transition-all", {
+          "text-red-500": !isCurrentChoiceHead,
+          "text-blue-500": isCurrentChoiceHead,
+          "scale-150": appState === APP_STATE.THROW,
+        })}
+      />
+    </li>
+  );
+};
 
-        <fog attach="fog" args={["#fff", 2, 50]} />
+const HistoryList = ({ className }: { className?: string }) => {
+  const history = useAppStore((state) => state.history);
 
-        <AnimatedCoinScene />
-      </Canvas>
+  const historyContainerRef = useRef<HTMLDivElement>(null);
 
-      <div className="absolute overflow-hidden w-full bottom-0 flex left-0 right-0 m-auto ">
-        <ul className="gap-8 overflow-auto w-full pb-10 pl-5 flex pt-5 pr-[calc(50vw-16px)]">
-          {history.map((item) => {
-            return (
-              <li
-                className={clsx(choiceClassName, "border-black", {
-                  // "bg-blue-500": item.choice,
-                  // "bg-red-500": !item.choice,
-                  "border-blue-400 bg-blue-500 shadow-blue-800 shadow-[2px_1px_0]":
-                    item.choice,
-                  "border-red-400 bg-red-500  shadow-red-800 shadow-[2px_1px_0]":
-                    !item.choice,
-                  "border-black shadow-black shadow-[2px_1px_0]":
-                    item.choice === item.outcome,
-                  "opacity-30": item.choice !== item.outcome,
-                })}
-              />
-            );
-          })}
-          <li
-            className={clsx(
-              choiceClassName,
-              "border-dashed  bg-white  border-gray-400"
-            )}
-          />
-        </ul>
+  useEffect(() => {
+    historyContainerRef.current!.scrollLeft =
+      historyContainerRef.current!.scrollWidth;
+  }, [history]);
+
+  const itemClassName =
+    "size-8 flex items-center justify-center shrink-0 rounded-full ";
+
+  const transitions = useTransition(history, {
+    keys(item) {
+      return item.id;
+    },
+    from: { opacity: 0, transform: "translate3d(10px, 0, 0)" },
+    enter: { opacity: 1, transform: "translate3d(0, 0, 0)" },
+
+    // leave: { opacity: 0, transform: "translate3d(10, 0, 0)" },
+  });
+
+  return (
+    <div
+      ref={historyContainerRef}
+      className={clsx("mask-image-fade-x flex overflow-auto w-full", className)}
+    >
+      <ul className={clsx("gap-5 flex ml-auto")}>
+        {transitions((style, item) => {
+          return (
+            <animated.li
+              key={item.id}
+              style={style}
+              className={clsx("flex rounded-full")}
+            >
+              <span
+                key={item.id}
+                className={clsx(
+                  itemClassName,
+                  "transition-all shadow-[2px_1px_0] border",
+                  {
+                    "border-blue-400 bg-blue-500 text-blue-400 shadow-blue-800":
+                      item.choice,
+                    "border-red-400 bg-red-500 text-red-400  shadow-red-800 ":
+                      !item.choice,
+                    "": true,
+                    "opacity-30 scale-90": item.choice !== item.outcome,
+                  }
+                )}
+              >
+                <span
+                  className={clsx("bg-current transition-colors", {
+                    "rounded-full text-red-500": !item.choice,
+                    "rounded-sm text-blue-500": item.choice,
+                    "size-4": true,
+                  })}
+                />
+              </span>
+            </animated.li>
+          );
+        })}
+
+        <HistoryListChoiceItem className={clsx(itemClassName)} />
+      </ul>
+    </div>
+  );
+};
+
+const App = () => {
+  return (
+    <main className="relative flex flex-col h-full">
+      <div className="relative min-h-0 h-full">
+        <Canvas
+          shadows
+          camera={{ position: [0, 2.7, 5] }}
+          className="touch-none select-none rounded-b-3xl"
+        >
+          <AnimatedCoinScene />
+        </Canvas>
       </div>
+
+      <HistoryList className="w-full flex-shrink-0 p-4 pb-6 pr-[calc(50vw-16px)]" />
     </main>
   );
 };

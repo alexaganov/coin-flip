@@ -1,7 +1,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import BezierEasing from "bezier-easing";
-import { Mesh, Vector3 } from "three";
+import Three, { Mesh, Vector3 } from "three";
 import { useSpring, animated, config, easings } from "@react-spring/three";
 import { FullGestureState, useDrag } from "@use-gesture/react";
 import {
@@ -10,30 +10,52 @@ import {
   PerspectiveCamera,
   ContactShadows,
   Outlines,
+  Plane,
+  Edges,
+  MeshDiscardMaterial,
+  PositionalAudio,
+  MeshReflectorMaterial,
+  Environment,
 } from "@react-three/drei";
 import {
+  DepthOfField,
   DotScreen,
   EffectComposer,
+  Glitch,
+  GodRays,
+  Grid,
   Outline,
 } from "@react-three/postprocessing";
-import { BlendFunction, KernelSize } from "postprocessing";
+import { BlendFunction, GlitchMode, KernelSize } from "postprocessing";
+import { useAppStore } from "./store";
+import { APP_STATE } from "./type";
 
-const getRandomBoolean = () => {
+const getRandomBooleanApi = async () => {
   // await delay(1500);
 
-  // TODO: add api call
-  //'https://www.random.org/integers/?num=1&min=0&max=1&col=1&base=10&format=plain&rnd=new'
+  try {
+    const response = await fetch(
+      "https://www.random.org/integers/?num=1&min=0&max=1&col=1&base=10&format=plain&rnd=new"
+    );
+
+    if (!response.ok) {
+      throw Error(`Request rejected with status ${response.status}`);
+    }
+
+    const result = await response.text();
+
+    return parseInt(result) === 1;
+  } catch (error) {
+    return Math.random() < 0.5;
+  }
+};
+
+const getRandomBoolean = () => {
   return Math.random() < 0.5;
 };
 
 const HALF_PI = Math.PI / 2;
 const TWO_PI = Math.PI * 2;
-
-const APP_STATE = {
-  CHOICE: "CHOICE",
-  THROW: "THROW",
-  RESTART: "RESTART",
-} as const;
 
 // const INITIAL_POSITION: [number, number, number] = [0, 0.5, 0] as const;
 const INITIAL_ROTATION: [number, number, number] = [-HALF_PI, 0, 0];
@@ -91,13 +113,13 @@ interface CoinProps {
 }
 
 const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
-  const [appState, setAppState] = useState<
-    (typeof APP_STATE)[keyof typeof APP_STATE]
-  >(APP_STATE.CHOICE);
+  const appState = useAppStore((state) => state.appState);
+  const setAppState = useAppStore((state) => state.setAppState);
+  const restart = useAppStore((state) => state.restart);
 
-  const [choice, setChoice] = useState<ChoiceType>(CHOICE.HEAD);
-
-  console.log({ choice });
+  const choice = useAppStore((state) => state.currentChoice);
+  const setChoice = useAppStore((state) => state.setChoice);
+  const setCurrentOutcome = useAppStore((state) => state.setCurrentOutcome);
 
   const { size: canvasSize, viewport } = useThree();
   const aspect = canvasSize.width / viewport.width;
@@ -123,7 +145,7 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
         },
         config: config.gentle,
         onResolve: () => {
-          setAppState(APP_STATE.CHOICE);
+          restart();
         },
       });
     };
@@ -135,11 +157,16 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
     return () => {
       window.removeEventListener("click", handlePointerUp);
     };
-  }, [appState, api, initialPosition, choice, rotation]);
+  }, [appState, api, restart, initialPosition, setAppState, choice, rotation]);
 
   useEffect(() => {
     if (appState !== APP_STATE.THROW) {
       return;
+    }
+
+    if (!coinFlipAudioRef.current?.isPlaying) {
+      coinFlipAudioRef.current!.offset = 0;
+      coinFlipAudioRef.current?.play();
     }
 
     const currentRotation = rotation.get();
@@ -158,6 +185,8 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
       },
       loop: true,
       config: {
+        duration: 150,
+        easing: easings.linear,
         bounce: 0,
       },
     });
@@ -178,7 +207,7 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
           },
         });
 
-        await delay(50);
+        // await delay(50);
 
         await next({
           position: [
@@ -199,14 +228,21 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
 
         // because each choice rotates coin on some angle
         // we should consider it to determine current side
-        const isChoiceTail = choice === CHOICE.TAIL;
+        const isChoiceHead = choice === CHOICE.HEAD;
 
-        const isTail = (rotateXTillFace / Math.PI) % 2 === Number(isChoiceTail);
+        const isHead =
+          Math.abs((rotateXTillFace / Math.PI) % 2) === Number(isChoiceHead);
 
         const randomBoolean = getRandomBoolean();
 
-        if (isTail !== randomBoolean) {
+        if (isHead !== randomBoolean) {
+          // rotate till random side
           rotateXTillFace -= Math.PI;
+        }
+
+        if (!coinFallAudioRef.current?.isPlaying) {
+          coinFlipAudioRef.current?.stop();
+          coinFallAudioRef.current!.play();
         }
 
         await next({
@@ -221,6 +257,7 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
             duration: 300,
           },
           onResolve: () => {
+            setCurrentOutcome(randomBoolean ? CHOICE.HEAD : CHOICE.TAIL);
             setAppState(APP_STATE.RESTART);
           },
         });
@@ -235,6 +272,8 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
     rotation,
     size,
     width,
+    setAppState,
+    setCurrentOutcome,
     groundPosition,
     initialPosition,
     choice,
@@ -242,13 +281,13 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
   ]);
 
   const choiceConfig = {
-    tension: 100,
-    friction: 10,
+    tension: 200,
+    friction: 15,
     mass: 1,
     // becaus config is merging every time,
     // bounce can be 0 which removes wobble effect
     bounce: undefined,
-  };
+  } as const;
 
   const handleHorizontalSwipe = ({ swipe }: FullGestureState<"drag">) => {
     const [x, y, z] = rotation.get();
@@ -284,7 +323,11 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
 
     api({
       rotation: [x, y, updatedZ],
-      config: choiceConfig,
+      config: {
+        ...choiceConfig,
+        tension: down ? 300 : choiceConfig.tension,
+        friction: down ? 20 : choiceConfig.friction,
+      },
     });
 
     return {
@@ -374,10 +417,21 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
   });
 
   const meshRef = useRef<Mesh>(null);
+  const coinFlipAudioRef = useRef<Three.PositionalAudio>(null);
+  const coinFallAudioRef = useRef<Three.PositionalAudio>(null);
+
+  // const headColor = 0xd600ff;
+  // const tailColor = 0x00ff9f;
+  // const edgeColor = 0x001eff;
+
+  const headColor = 0x3d82f6;
+  const tailColor = 0xef4444;
+  const edgeColor = 0x00ffff;
 
   return (
     <>
       <animated.mesh
+        renderOrder={1}
         ref={meshRef}
         rotation={rotation}
         position={position}
@@ -386,57 +440,79 @@ const Coin = ({ size, width, groundPosition, initialPosition }: CoinProps) => {
       >
         <cylinderGeometry args={[size / 2, size / 2, width, 50]} />
 
+        {/* <meshBasicMaterial color="red" /> */}
         {/* <meshNormalMaterial /> */}
 
-        <meshStandardMaterial transparent color="white" attach="material-0">
-          {/* <color attach="background" args={["orange"]} />
-          <RenderTexture attach="map">
-          </RenderTexture> */}
-        </meshStandardMaterial>
+        <meshBasicMaterial
+          color={edgeColor}
+          depthTest={false}
+          attach="material-0"
+          // color={choice === CHOICE.HEAD ? "blue" : "red"}
+        />
 
-        <meshStandardMaterial
-          // color="red"
+        <meshBasicMaterial
+          color={tailColor}
           attach="material-1"
-        >
-          <RenderTexture attach="map">
-            <PerspectiveCamera
-              makeDefault
-              manual
-              aspect={1 / 1}
-              position={[0, 0, 5]}
-            />
-            <color attach="background" args={["red"]} />
-            {/* <Text color="black" rotation={[0, 0, -HALF_PI]}>
-              ❀
-            </Text> */}
-          </RenderTexture>
-        </meshStandardMaterial>
+          depthTest={false}
+        />
 
-        <meshStandardMaterial
-          metalness={0.5}
-          roughness={0.2}
+        <meshBasicMaterial
+          color={headColor}
           attach="material-2"
+          depthTest={false}
+        />
+
+        {/* TODO: use drei decal */}
+        {/* <meshStandardMaterial
+          // metalness={0.5}
+          // roughness={0.2}
+          attach="material-1"
+          attach="material-2"
+          depthTest={false}
         >
           <RenderTexture attach="map">
             <PerspectiveCamera
               makeDefault
               manual
               aspect={1 / 1}
-              position={[0, 0, 5]}
+              position={[0, 0, 10]}
             />
-            <color attach="background" args={["blue"]} />
-            {/* <Text
-              lineHeight={1}
-              color="black"
+            <color attach="background" args={[headColor]} />
+            <Text
+              lineHeight={0}
+              // color=
               fontSize={2}
               rotation={[0, 0, -HALF_PI]}
             >
-              ✦꥟❂✹
-            </Text> */}
+              ⬤
+            </Text>
           </RenderTexture>
-        </meshStandardMaterial>
+        </meshStandardMaterial> */}
 
-        <Outlines thickness={5} color="black" />
+        <Outlines screenspace thickness={0.03} color={0x000000} />
+        <PositionalAudio
+          loop={false}
+          hasPlaybackControl
+          onEnded={() => {
+            if (appState === APP_STATE.THROW) {
+              coinFlipAudioRef.current?.stop();
+              coinFlipAudioRef.current!.offset = 0.6;
+              coinFlipAudioRef.current?.play();
+            }
+          }}
+          ref={coinFlipAudioRef}
+          url="/coin-flip.wav"
+          distance={3}
+        />
+        <PositionalAudio
+          loop={false}
+          hasPlaybackControl
+          offset={0.6}
+          duration={0.5}
+          ref={coinFallAudioRef}
+          url="/coin-fall.mp3"
+          distance={3}
+        />
       </animated.mesh>
     </>
   );
@@ -447,23 +523,64 @@ export const AnimatedCoinScene = () => {
     <>
       <gridHelper
         receiveShadow={false}
-        args={[100, 100, "#bbb", "#bbb"]}
-        position={[0, -0.000001, 0]}
+        args={[100, 200, "#bbb", "#bbb"]}
+        position={[0, -0.029, 0]}
+      />
+
+      <color attach="background" args={["#ffffff"]} />
+
+      <fog attach="fog" args={["#fff", 2, 50]} />
+
+      <ambientLight intensity={2} />
+
+      <directionalLight
+        castShadow
+        intensity={5}
+        position={[0, 6, 6]}
+        shadow-mapSize={[1024, 1024]}
       />
 
       <Coin
-        groundPosition={[0, 0, 0]}
-        initialPosition={[0, 3, 0]}
+        groundPosition={[0, 0.3, 0]}
+        initialPosition={[0, 2, 0]}
         size={2}
         width={0.1}
       />
 
-      <ContactShadows
+      <mesh
+        receiveShadow
+        position={[0, -0.03, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
+        <planeGeometry args={[100, 100]} />
+
+        <meshStandardMaterial color="#fff" />
+      </mesh>
+
+      {/* <Environment preset="city" /> */}
+      {/* <mesh castShadow receiveShadow position={[0, -0.1, 0]}>
+        <cylinderGeometry args={[2, 2, 0.2, 50]} />
+        <meshToonMaterial color={0xffffff} />
+
+        <Edges lineWidth={2} color="#000" />
+
+        <Outlines thickness={5} color={0x000000} />
+      </mesh> */}
+
+      {/* <ContactShadows
         position={[0, 0, 0]}
         scale={10}
         blur={0.4}
-        opacity={0.2}
-      />
+        opacity={0.1}
+      /> */}
+
+      {/* <EffectComposer>
+        <DotScreen
+          blendFunction={BlendFunction.SCREEN} // blend mode
+          angle={Math.PI * 0.06} // angle of the dot pattern
+          scale={0.9} // scale of the dot pattern
+        />
+      </EffectComposer> */}
     </>
   );
 };
