@@ -1,7 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 
-import { AnimatedCoinScene } from "./AnimatedCoinScene";
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import clsx from "clsx";
 import { APP_STATE, CHOICE } from "./type";
 import { useAppStore } from "./store";
@@ -64,6 +63,8 @@ const HistoryList = ({ className }: { className?: string }) => {
     >
       <ul className={clsx("gap-5 flex ml-auto")}>
         {transitions((style, item) => {
+          const isHead = item.outcome === CHOICE.HEAD;
+
           return (
             <animated.li
               key={item.id}
@@ -77,9 +78,9 @@ const HistoryList = ({ className }: { className?: string }) => {
                   "transition-all shadow-[2px_1px_0] border",
                   {
                     "border-blue-400 bg-blue-500 text-blue-400 shadow-blue-800":
-                      item.choice,
+                      isHead,
                     "border-red-400 bg-red-500 text-red-400  shadow-red-800 ":
-                      !item.choice,
+                      !isHead,
                     "": true,
                     "opacity-30 scale-90": item.choice !== item.outcome,
                   }
@@ -87,8 +88,8 @@ const HistoryList = ({ className }: { className?: string }) => {
               >
                 <span
                   className={clsx("bg-current transition-colors", {
-                    "rounded-full text-red-500": !item.choice,
-                    "rounded-sm text-blue-500": item.choice,
+                    "rounded-full text-red-500": !isHead,
+                    "rounded-sm text-blue-500": isHead,
                     "size-4": true,
                   })}
                 />
@@ -103,20 +104,24 @@ const HistoryList = ({ className }: { className?: string }) => {
   );
 };
 
+const AnimatedCoinScene = lazy(() => import("./AnimatedCoinScene"));
+
 const App = () => {
   return (
     <main className="relative flex flex-col h-full">
       <div className="relative min-h-0 h-full">
         <Canvas
           shadows
-          camera={{ position: [0, 2.7, 5] }}
-          className="touch-none select-none rounded-b-3xl"
+          camera={{ position: [0, 2.7, 6] }}
+          className="touch-none select-none"
         >
-          <AnimatedCoinScene />
+          <Suspense fallback={"Loading"}>
+            <AnimatedCoinScene />
+          </Suspense>
         </Canvas>
       </div>
 
-      <HistoryList className="w-full flex-shrink-0 p-4 pb-6 pr-[calc(50vw-16px)]" />
+      <HistoryList className="fixed bottom-0 left-0 right-0 w-full flex-shrink-0 p-4 pb-6 pr-[calc(50vw-16px)]" />
     </main>
   );
 };

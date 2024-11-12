@@ -2,12 +2,18 @@
 
 ## TODO
 
+- [x] Rotate coin before it hit the ground to make label look in direction of the camera (when outcome is different label will look in opposite direction)
+- [x] When coin is on the ground return it on initial position but with current face looking at the camera (right now it's always head as initial position)
 - [ ] Improve environment (right now it's too plain)
 - [ ] Add proper 3d coin model
 - [ ] Add symbols for each side of the 3d coin
 - [ ] Add effects to the 3d coin model (shine, reflection etc.)
 - [ ] Refactor to improve readability (too much code in single file)
-- [ ] When coin on the ground move camera closer to it 
+- [ ] Add ability to embed via iframe
+- [x] Move camera closer to coin when it's on the ground
+- [ ] Add tutorial to show available controls
+- [ ] Add sound for rotation
+- [x] Add ability to rotate coin on click
 
 # React + TypeScript + Vite
 

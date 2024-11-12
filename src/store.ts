@@ -49,7 +49,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     };
 
     return set({
-      currentChoice: CHOICE.HEAD,
+      currentChoice: currentOutcome,
       appState: APP_STATE.CHOICE,
       currentOutcome: null,
       history: [...history, newHistoryItem],
