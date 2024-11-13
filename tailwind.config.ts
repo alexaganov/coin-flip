@@ -2,10 +2,11 @@ import { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 
 const config: Config = {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  content: ["./src/**/*.{ts,js,tsx,jsx}", "./index.html"],
   theme: {
     extend: {},
   },
+
   plugins: [
     plugin(({ addBase }) => {
       addBase({

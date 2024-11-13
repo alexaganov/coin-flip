@@ -12,7 +12,6 @@ import {
 import { FullGestureState, useDrag } from "@use-gesture/react";
 import {
   RenderTexture,
-  Text,
   PerspectiveCamera,
   Outlines,
   PositionalAudio,
@@ -20,7 +19,8 @@ import {
 
 import { useAppStore } from "./store";
 import { APP_STATE, CHOICE, ChoiceType } from "./type";
-import { degToRad, lerp } from "three/src/math/MathUtils.js";
+import { degToRad, lerp, radToDeg } from "three/src/math/MathUtils.js";
+import { roundToDecimals } from "./utils/number";
 
 // const getRandomBooleanApi = async () => {
 //   // await delay(1500);
@@ -49,8 +49,6 @@ const getRandomBoolean = () => {
 const getRandomChoice = () => {
   return getRandomBoolean() ? CHOICE.HEAD : CHOICE.TAIL;
 };
-
-const HALF_PI = Math.PI / 2;
 
 const delay = (timeout: number) => {
   return new Promise((res) => {
@@ -108,7 +106,6 @@ const screenToWordPosition = ({
   canvasWidth: number;
   canvasHeight: number;
   camera: THREE.Camera;
-  distance?: number;
 }) => {
   const vector = new THREE.Vector3(
     (x / canvasWidth) * 2 - 1,
@@ -120,11 +117,13 @@ const screenToWordPosition = ({
 
   vector.sub(camera.position).normalize();
 
-  return camera.position.clone().add(vector.multiplyScalar(camera.position.z));
+  const cameraDistance = -camera.position.z / vector.z;
+
+  return camera.position.clone().add(vector.multiplyScalar(cameraDistance));
 };
 
-const INITIAL_CAMERA_POSITION = [0, 2.7, 6];
-const CAMERA_POSITION_FROM_TOP = [0, 5, 1.5];
+const INITIAL_CAMERA_POSITION = [0, 3.7, 5];
+const CAMERA_POSITION_FROM_TOP = [0, 5, 0];
 
 export const Coin = ({
   size,
@@ -135,6 +134,7 @@ export const Coin = ({
   const appState = useAppStore((state) => state.appState);
   const setAppState = useAppStore((state) => state.setAppState);
   const restart = useAppStore((state) => state.restart);
+  const isAudioMuted = useAppStore((state) => state.isAudioMuted);
 
   // const choice = useAppStore((state) => state.currentChoice);
   const currentOutcome = useAppStore((state) => state.currentOutcome);
@@ -143,7 +143,7 @@ export const Coin = ({
 
   const [initialRotation, setInitialRotation] = useState(HEAD_INITIAL_ROTATION);
 
-  const { size: canvasSize, viewport, camera } = useThree();
+  const { size: canvasSize, viewport, camera, gl } = useThree();
   const aspect = canvasSize.width / viewport.width;
 
   const [isCameraLookingFromTop, setIsCameraLookingFromTop] = useState(false);
@@ -158,18 +158,83 @@ export const Coin = ({
 
   const lookAtVector = new THREE.Vector3(...position.get());
 
-  const playCoinFallSoundEffect = () => {
-    if (coinFallAudioRef.current && !coinFallAudioRef.current.isPlaying) {
-      coinFlipAudioRef.current?.stop();
-      coinFallAudioRef.current.play();
+  useEffect(() => {
+    if (!isAudioMuted) {
+      return;
     }
+
+    if (coinFallAudioRef.current?.isPlaying) {
+      coinFallAudioRef.current.stop();
+    }
+
+    if (coinFlipAudioRef.current?.isPlaying) {
+      coinFlipAudioRef.current.stop();
+    }
+  }, [isAudioMuted]);
+
+  const playAudioEffect = useCallback((name: "throw" | "in-air" | "fall") => {
+    const effects = {
+      throw: {
+        play: () => {
+          if (!coinFlipAudioRef.current) {
+            return;
+          }
+
+          coinFlipAudioRef.current.offset = 0;
+          coinFlipAudioRef.current.play();
+        },
+      },
+      "in-air": {
+        audio: coinFlipAudioRef,
+        play: () => {
+          if (!coinFlipAudioRef.current) {
+            return;
+          }
+
+          coinFlipAudioRef.current.stop();
+          coinFlipAudioRef.current.offset = 0.6;
+          coinFlipAudioRef.current.play();
+        },
+      },
+      fall: {
+        play: () => {
+          coinFlipAudioRef.current?.stop();
+
+          if (!coinFallAudioRef.current) {
+            return;
+          }
+
+          coinFallAudioRef.current.stop();
+          coinFallAudioRef.current.play();
+        },
+      },
+    };
+
+    const isAudioMuted = useAppStore.getState().isAudioMuted;
+
+    if (isAudioMuted) {
+      return;
+    }
+
+    const effect = effects[name];
+
+    if (!effect) {
+      return;
+    }
+
+    effect.play();
+  }, []);
+
+  const playCoinFallSoundEffect = () => {
+    playAudioEffect("fall");
+  };
+
+  const playCoinInAirSoundEffect = () => {
+    playAudioEffect("in-air");
   };
 
   const playCoinThrowSoundEffect = () => {
-    if (coinFlipAudioRef.current && !coinFlipAudioRef.current.isPlaying) {
-      coinFlipAudioRef.current.offset = 0;
-      coinFlipAudioRef.current.play();
-    }
+    playAudioEffect("throw");
   };
 
   const reset = useCallback(() => {
@@ -240,19 +305,22 @@ export const Coin = ({
     // simulate coin rotation
     api.start({
       from: {
-        rotation: [...currentRotation],
+        rotation: [
+          currentRotation[0],
+          currentRotation[1],
+          roundRotationToClosestFace(currentRotation[2]),
+        ],
       },
       to: {
         rotation: [
-          // 2 full rotations
-          currentRotation[0] - FULL_ROTATION,
+          currentRotation[0] - FULL_ROTATION * 2,
           currentRotation[1],
-          currentRotation[2],
+          roundRotationToClosestFace(currentRotation[2]),
         ],
       },
       loop: true,
       config: {
-        duration: 100,
+        duration: 300,
         easing: easings.linear,
         bounce: 0,
       },
@@ -384,22 +452,26 @@ export const Coin = ({
     bounce: undefined,
   } as const;
 
-  const handleHorizontalSwipe = ({ swipe }: FullGestureState<"drag">) => {
-    const [x, y, z] = rotation.get();
+  const handleSwipe = ({ swipe }: FullGestureState<"drag">) => {
+    if (swipe[0] !== 0) {
+      const [x, y, z] = rotation.get();
 
-    const updatedZ = roundRotationToClosestFace(
-      z + swipe[0] * NEXT_SIDE_ROTATION
-    );
+      const updatedZ = roundRotationToClosestFace(
+        z + swipe[0] * NEXT_SIDE_ROTATION
+      );
 
-    setChoice(getChoiceByZRotation(updatedZ));
+      setChoice(getChoiceByZRotation(updatedZ));
 
-    api.start({
-      rotation: [x, y, updatedZ],
-      config: {
-        ...defaultConfig,
-        tension: 300,
-      },
-    });
+      api.start({
+        rotation: [x, y, updatedZ],
+        config: {
+          ...defaultConfig,
+          tension: 300,
+        },
+      });
+    } else if (swipe[1] !== 0) {
+      setAppState(APP_STATE.THROW);
+    }
   };
 
   const rotateCoinByZToNextFace = ({
@@ -434,7 +506,8 @@ export const Coin = ({
     });
   };
 
-  const handleCoinTap = (state: FullGestureState<"drag">) => {
+  // TODO: update calculations
+  const handleTap = (state: FullGestureState<"drag">) => {
     const wordPosition = screenToWordPosition({
       camera,
       position: state.xy,
@@ -452,6 +525,17 @@ export const Coin = ({
     ) {
       return;
     }
+
+    const angle = radToDeg(
+      Math.atan2(initialPosition[1] - wordPosition.y, wordPosition.x)
+    );
+
+    if (angle >= 60 && angle <= 120) {
+      setAppState(APP_STATE.THROW);
+
+      return;
+    }
+
     rotateCoinByZToNextFace({
       direction: wordPosition.x > 0 ? 1 : -1,
       config: {
@@ -503,10 +587,10 @@ export const Coin = ({
     const updatedXRotation =
       initialRotation[0] + (movement[1] / aspect) * QUARTER_ROTATION;
 
-    const xRotationTillThrow = Math.abs(initialRotation[0]) + QUARTER_ROTATION;
+    const xRotationToThrow = Math.abs(initialRotation[0]) + QUARTER_ROTATION;
     const updatedZRotation = roundRotationToClosestFace(z);
 
-    if (Math.abs(updatedXRotation) >= xRotationTillThrow) {
+    if (Math.abs(updatedXRotation) >= xRotationToThrow) {
       setAppState(APP_STATE.THROW);
 
       api.set({
@@ -522,7 +606,13 @@ export const Coin = ({
     }
 
     if (down) {
-      const updatePositionY = initialPosition[1] + (movement[1] / aspect) * -1;
+      const rotationProgress =
+        (Math.abs(updatedXRotation) - Math.abs(initialRotation[0])) /
+        QUARTER_ROTATION;
+
+      const updatePositionY =
+        initialPosition[1] +
+        rotationProgress * (INITIAL_CAMERA_POSITION[1] - initialPosition[1]);
 
       api.start({
         position: [initialPosition[0], updatePositionY, initialPosition[2]],
@@ -538,7 +628,6 @@ export const Coin = ({
 
   useDrag(
     (state) => {
-      state.xy;
       // don't use enabled param for useDrag because when it's toggled back
       // down param can be still in true even though mouse/pointer is not active
       if (appState !== APP_STATE.CHOICE) {
@@ -546,16 +635,11 @@ export const Coin = ({
       }
 
       if (state.tap) {
-        return handleCoinTap(state);
+        return handleTap(state);
       }
 
-      if (state.swipe[0] !== 0) {
-        return handleHorizontalSwipe(state);
-      }
-
-      if (state.swipe[1] !== 0) {
-        setAppState(APP_STATE.THROW);
-        return;
+      if (state.swipe[0] !== 0 || state.swipe[1] !== 0) {
+        return handleSwipe(state);
       }
 
       const { movement, direction, down, memo } = state;
@@ -583,7 +667,7 @@ export const Coin = ({
       return updatedMemo;
     },
     {
-      target: window,
+      target: gl.domElement,
     }
   );
 
@@ -597,41 +681,20 @@ export const Coin = ({
       : INITIAL_CAMERA_POSITION;
 
     camera.position.set(
-      lerp(camera.position.x, cameraPosition[0], 0.05),
-      lerp(camera.position.y, cameraPosition[1], 0.05),
-      lerp(camera.position.z, cameraPosition[2], 0.05)
+      roundToDecimals(lerp(camera.position.x, cameraPosition[0], 0.06), 3),
+      roundToDecimals(lerp(camera.position.y, cameraPosition[1], 0.06), 3),
+      roundToDecimals(lerp(camera.position.z, cameraPosition[2], 0.06), 3)
     );
   });
-
-  // const handleCoinPointerUp = (event: ThreeEvent<MouseEvent>) => {
-  //   console.log({ tap: coinTapRef.current });
-
-  //   if (!coinTapRef.current) {
-  //     return;
-  //   }
-
-  //   const { x } = event.point;
-
-  //   rotateCoinByZToNextFace({
-  //     direction: x > 0 ? 1 : -1,
-  //     config: {
-  //       friction: 12,
-  //     },
-  //   });
-  // };
 
   const meshRef = useRef<THREE.Mesh>(null);
   const coinFlipAudioRef = useRef<THREE.PositionalAudio>(null);
   const coinFallAudioRef = useRef<THREE.PositionalAudio>(null);
-  // const coinWhooshSoundRef = useRef<Three.PositionalAudio>(null);
-
-  // const headColor = 0xd600ff;
-  // const tailColor = 0x00ff9f;
-  // const edgeColor = 0x001eff;
 
   const headColor = 0x3d82f6;
   const tailColor = 0xef4444;
   const edgeColor = 0x00ffff;
+  const signColor = 0xffffff;
 
   return (
     <animated.mesh
@@ -649,20 +712,15 @@ export const Coin = ({
       position={position}
       receiveShadow
       castShadow
-      // onPointerUp={handleCoinPointerUp}
     >
       <cylinderGeometry args={[size / 2, size / 2, width, 50]} />
 
-      {/* <meshBasicMaterial color="red" /> */}
-      {/* <meshNormalMaterial /> */}
-
       <meshStandardMaterial
         color={edgeColor}
-        depthTest={false}
         metalness={1}
-        roughness={0.3}
+        roughness={0.5}
+        depthTest={false}
         attach="material-0"
-        // color={choice === CHOICE.HEAD ? "blue" : "red"}
       />
 
       {/* <meshBasicMaterial
@@ -679,10 +737,10 @@ export const Coin = ({
       {/* <MeshRefractionMaterial envMap={texture} {...config} toneMapped={false} /> */}
       {/* <MeshTransmissionMaterial resolution={1024} distortion={0.25} color="#FF8F20" thickness={1} anisotropy={1} /> */}
       <meshStandardMaterial
-        metalness={1}
-        roughness={0.3}
-        attach="material-1"
         depthTest={false}
+        metalness={1}
+        roughness={0.5}
+        attach="material-1"
       >
         <RenderTexture attach="map">
           <PerspectiveCamera
@@ -692,22 +750,27 @@ export const Coin = ({
             position={[0, 0, 10]}
           />
           <color attach="background" args={[tailColor]} />
-          <Text
+
+          <mesh>
+            <planeGeometry args={[0.3, 2]} />
+
+            <meshBasicMaterial color={signColor} />
+          </mesh>
+          {/* <Text
             lineHeight={0}
-            // color=
-            fontSize={2}
+            fontSize={4}
             rotation={[0, 0, -HALF_PI]}
           >
             Tail
-          </Text>
+          </Text> */}
         </RenderTexture>
       </meshStandardMaterial>
 
       <meshStandardMaterial
+        depthTest={false}
         metalness={1}
         roughness={0.3}
         attach="material-2"
-        depthTest={false}
       >
         <RenderTexture attach="map">
           <PerspectiveCamera
@@ -716,15 +779,24 @@ export const Coin = ({
             aspect={1 / 1}
             position={[0, 0, 10]}
           />
+
           <color attach="background" args={[headColor]} />
-          <Text
-            lineHeight={0}
-            // color=
-            fontSize={2}
-            rotation={[0, 0, -HALF_PI]}
-          >
+
+          <mesh>
+            <planeGeometry args={[0.3, 2]} />
+
+            <meshBasicMaterial color={signColor} />
+          </mesh>
+
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <planeGeometry args={[0.3, 2]} />
+
+            <meshBasicMaterial color={signColor} />
+          </mesh>
+
+          {/* <Text lineHeight={0} fontSize={4} rotation={[0, 0, -HALF_PI]}>
             Head
-          </Text>
+          </Text> */}
         </RenderTexture>
       </meshStandardMaterial>
 
@@ -734,13 +806,7 @@ export const Coin = ({
         loop={false}
         hasPlaybackControl
         isPlaying={false}
-        onEnded={() => {
-          if (coinFlipAudioRef.current) {
-            coinFlipAudioRef.current?.stop();
-            coinFlipAudioRef.current!.offset = 0.6;
-            coinFlipAudioRef.current?.play();
-          }
-        }}
+        onEnded={playCoinInAirSoundEffect}
         ref={coinFlipAudioRef}
         url="/coin-flip.wav"
         distance={3}

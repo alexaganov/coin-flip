@@ -8,12 +8,17 @@
 - [ ] Add proper 3d coin model
 - [ ] Add symbols for each side of the 3d coin
 - [ ] Add effects to the 3d coin model (shine, reflection etc.)
-- [ ] Refactor to improve readability (too much code in single file)
 - [ ] Add ability to embed via iframe
 - [x] Move camera closer to coin when it's on the ground
 - [ ] Add tutorial to show available controls
 - [ ] Add sound for rotation
 - [x] Add ability to rotate coin on click
+- [x] Add sound toggle
+- [x] Add tap on bottom of the coin to throw it
+
+**Top Priority**
+- [ ] Refactor to improve readability (too much code in single file)
+- [ ] Make the coin using css because instead of threeJs version because bundle is too big
 
 # React + TypeScript + Vite
 

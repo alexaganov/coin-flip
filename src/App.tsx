@@ -5,7 +5,9 @@ import clsx from "clsx";
 import { APP_STATE, CHOICE } from "./type";
 import { useAppStore } from "./store";
 import { useTransition } from "react-spring";
-import { animated } from "@react-spring/web";
+import { animated, useSpring } from "@react-spring/web";
+import { SpeakerWave } from "./components/icons/SpeakerWave";
+import { SpeakerXMark } from "./components/icons/SpeakerXMark";
 
 const HistoryListChoiceItem = ({ className }: { className: string }) => {
   const appState = useAppStore((state) => state.appState);
@@ -46,18 +48,28 @@ const HistoryList = ({ className }: { className?: string }) => {
   const itemClassName =
     "size-8 flex items-center justify-center shrink-0 rounded-full ";
 
+  const showList = useSpring({
+    from: {
+      opacity: 0,
+      y: "100%",
+    },
+    to: {
+      opacity: 1,
+      y: "0%",
+    },
+  });
+
   const transitions = useTransition(history, {
     keys(item) {
       return item.id;
     },
     from: { opacity: 0, transform: "translate3d(10px, 0, 0)" },
     enter: { opacity: 1, transform: "translate3d(0, 0, 0)" },
-
-    // leave: { opacity: 0, transform: "translate3d(10, 0, 0)" },
   });
 
   return (
-    <div
+    <animated.div
+      style={showList}
       ref={historyContainerRef}
       className={clsx("mask-image-fade-x flex overflow-auto w-full", className)}
     >
@@ -100,20 +112,73 @@ const HistoryList = ({ className }: { className?: string }) => {
 
         <HistoryListChoiceItem className={clsx(itemClassName)} />
       </ul>
-    </div>
+    </animated.div>
+  );
+};
+
+const ToggleAudioButton = ({ className }: { className?: string }) => {
+  const isAudioMuted = useAppStore((state) => state.isAudioMuted);
+  const toggleIsAudioMuted = useAppStore((state) => state.toggleIsAudioMuted);
+
+  const Icon = isAudioMuted ? SpeakerXMark : SpeakerWave;
+
+  return (
+    <button
+      onClick={toggleIsAudioMuted}
+      className={clsx(
+        "size-10 flex items-center transition-all justify-center",
+        isAudioMuted ? "invert-[40%]" : "invert-[80%]",
+        className
+      )}
+    >
+      <Icon className="size-8" />
+    </button>
   );
 };
 
 const AnimatedCoinScene = lazy(() => import("./AnimatedCoinScene"));
 
 const App = () => {
+  // NOTE: iphone shows selection magnifier on dbl touch
+  // below code prevents it but in some cases it also prevents normal scroll
+  // useEffect(() => {
+  //   function createDoubleTapPreventer(timeout: number) {
+  //     let dblTapTimer = 0;
+  //     let dblTapPressed = false;
+
+  //     return function (e: TouchEvent) {
+  //       clearTimeout(dblTapTimer);
+  //       if (dblTapPressed) {
+  //         e.preventDefault();
+  //         dblTapPressed = false;
+  //       } else {
+  //         dblTapPressed = true;
+  //         dblTapTimer = setTimeout(() => {
+  //           dblTapPressed = false;
+  //         }, timeout);
+  //       }
+  //     };
+  //   }
+  //   const handler = createDoubleTapPreventer(500);
+
+  //   window.addEventListener("touchstart", handler, { passive: false });
+
+  //   return () => {
+  //     window.removeEventListener("touchstart", handler);
+  //   };
+  // }, []);
+
   return (
     <main className="relative flex flex-col h-full">
+      <div className="fixed z-10 right-0 select-none p-5 flex">
+        <ToggleAudioButton />
+      </div>
+
       <div className="relative min-h-0 h-full">
         <Canvas
           shadows
           camera={{ position: [0, 2.7, 6] }}
-          className="touch-none select-none"
+          className="[&_canvas]:touch-none select-none"
         >
           <Suspense fallback={"Loading"}>
             <AnimatedCoinScene />
@@ -121,7 +186,7 @@ const App = () => {
         </Canvas>
       </div>
 
-      <HistoryList className="fixed bottom-0 left-0 right-0 w-full flex-shrink-0 p-4 pb-6 pr-[calc(50vw-16px)]" />
+      <HistoryList className="fixed bottom-0 left-0 right-0 w-full select-none flex-shrink-0 pt-1 px-8 pb-8 pr-[calc(50vw-16px)]" />
     </main>
   );
 };
