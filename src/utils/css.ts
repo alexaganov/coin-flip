@@ -29,6 +29,22 @@ class StyleTransformBuilder {
     return this;
   }
 
+  rotateX(angle: string | number) {
+    const formattedAngle = this.formatWithUnits(angle, "deg");
+
+    this.transforms.push(`rotateX(${formattedAngle})`);
+
+    return this;
+  }
+
+  rotateZ(angle: string | number) {
+    const formattedAngle = this.formatWithUnits(angle, "deg");
+
+    this.transforms.push(`rotateZ(${formattedAngle})`);
+
+    return this;
+  }
+
   get() {
     return this.transforms.join(" ");
   }
