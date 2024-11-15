@@ -1,5 +1,5 @@
 import { Environment, Stars } from "@react-three/drei";
-import { Coin } from "./Coin";
+import { Coin } from "./ThreeJsCoin";
 
 export const AnimatedCoinScene = () => {
   const coinSize = 2;
