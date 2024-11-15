@@ -1,8 +1,8 @@
 import { Canvas } from "@react-three/fiber";
 
-import { lazy, ReactNode, Suspense, useEffect, useRef } from "react";
+import { lazy, ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { APP_STATE, CHOICE } from "./type";
+import { APP_STATE, CHOICE, ChoiceType } from "./type";
 import { useAppStore } from "./store";
 import { useTransition } from "react-spring";
 import { animated, easings, to, useSpring } from "@react-spring/web";
@@ -19,6 +19,7 @@ import { getRandomBoolean, roundToMultiple } from "./utils/number";
 
 import BezierEasing from "bezier-easing";
 import { delay } from "./utils/promise";
+import { calculateZAxisProjection, degToRad, radToDeg } from "./utils/math";
 
 const PERSPECTIVE = 1000;
 
@@ -32,7 +33,7 @@ const Environment = () => {
         // transformOrigin: "center bottom",
         transformStyle: "preserve-3d",
       }}
-      className="w-full absolute left-0 top-0 h-full"
+      className="w-full absolute pointer-events-none left-0 top-0 h-full"
     >
       <div
         style={{
@@ -59,6 +60,34 @@ const Environment = () => {
 
 const COIN_SIZE = 150;
 
+const defaultConfig = {
+  tension: 200,
+  friction: 16,
+  mass: 1,
+  // becaus config is merging every time,
+  // bounce can be 0 which removes wobble effect
+  bounce: undefined,
+} as const;
+
+const CAMERA_INITIAL_POSITION_Y = 100;
+
+const isFrontSideLookingAtScreen = (
+  xRotationInDegrees: number,
+  yRotationInDegrees: number
+) => {
+  const xRotationInRadians = degToRad(xRotationInDegrees);
+  const yRotationInRadians = degToRad(yRotationInDegrees);
+
+  const zProjection = calculateZAxisProjection(
+    xRotationInRadians,
+    yRotationInRadians
+  );
+
+  // console.log({ zProjection });
+
+  return zProjection > 0;
+};
+
 const App = () => {
   const appState = useAppStore((state) => state.appState);
   const setAppState = useAppStore((state) => state.setAppState);
@@ -67,12 +96,15 @@ const App = () => {
 
   // const choice = useAppStore((state) => state.currentChoice);
   const currentOutcome = useAppStore((state) => state.currentOutcome);
+  const currentChoice = useAppStore((state) => state.currentChoice);
   const setChoice = useAppStore((state) => state.setChoice);
   const setCurrentOutcome = useAppStore((state) => state.setCurrentOutcome);
   const coinRef = useRef<HTMLDivElement>(null);
+  const [activeSide, setActiveSide] = useState<ChoiceType>(CHOICE.HEAD);
   // const windowInnerSize = useWindowInnerSize();
 
   const updateChoice = (rotationH: number) => {
+    console.log(" update choice ");
     const nextChoice =
       roundToMultiple(rotationH, 180) % 360 === 0 ? CHOICE.HEAD : CHOICE.TAIL;
 
@@ -80,51 +112,34 @@ const App = () => {
     setChoice(nextChoice);
   };
 
+  // const handleChange = (rotationH: number, rotationV: number) => {
+  //   setActiveSide(
+  //     isFrontSideLookingAtScreen(
+  //       roundToMultiple(rotationH, 180),
+  //       roundToMultiple(rotationV, 180)
+  //     )
+  //       ? CHOICE.HEAD
+  //       : CHOICE.TAIL
+  //   );
+
+  //   if (appState === APP_STATE.CHOICE) {
+  //     updateChoice(rotationH);
+  //   }
+  // };
+
+  // console.log({ activeSide });
+
+  console.log({ currentChoice });
+
   const [{ rotationV, positionY, rotationH }, api] = useSpring(() => ({
     rotationH: 0,
     rotationV: 0,
     positionY: 0,
-    onChange: (result) => {
-      if (appState !== APP_STATE.CHOICE) {
-        return;
-      }
-
-      updateChoice(result.value.rotationH);
-    },
+    cameraY: 0,
+    // onChange: (result) => {
+    //   handleChange(result.value.rotationH, result.value.rotationV);
+    // },
   }));
-
-  // const handleHorizontalDrag = ({
-  //   movement,
-  //   down,
-  //   memo,
-  // }: Omit<FullGestureState<"drag">, "memo"> & { memo?: { rotateZ: number } }): {
-  //   rotateZ: number;
-  // } => {
-  //   const [x, y, z] = rotation.get();
-
-  //   const rotateZStart = memo?.rotateZ ?? z;
-
-  //   let updatedZ = rotateZStart + (movement[0] / aspect) * QUARTER_ROTATION;
-
-  //   if (!down) {
-  //     updatedZ = roundRotationToClosestFace(updatedZ);
-
-  //     setChoice(getChoiceByZRotation(updatedZ));
-  //   }
-
-  //   api.start({
-  //     rotation: [x, y, updatedZ],
-  //     config: {
-  //       ...defaultConfig,
-  //       tension: down ? 300 : defaultConfig.tension,
-  //       friction: down ? 20 : defaultConfig.friction,
-  //     },
-  //   });
-
-  //   return {
-  //     rotateZ: rotateZStart,
-  //   };
-  // };
 
   const handleChangeSide = ({
     swipe,
@@ -147,15 +162,13 @@ const App = () => {
       }
     }
 
+    updateChoice(updatedH);
+
     // setChoice(getChoiceByZRotation(updatedZ));
 
     api.start({
       rotationH: updatedH,
-      // config: {
-      //   ...defaultConfig,
-      //   tension: down ? 300 : defaultConfig.tension,
-      //   friction: down ? 20 : defaultConfig.friction,
-      // },
+      config: defaultConfig,
     });
 
     return {
@@ -164,6 +177,8 @@ const App = () => {
   };
 
   const throwCoin = () => {
+    setAppState(APP_STATE.THROW);
+
     const currentRotationV = rotationV.get();
 
     // simulate coin rotation
@@ -176,8 +191,7 @@ const App = () => {
       },
       loop: true,
       config: {
-        // duration: 300,
-        duration: 5000,
+        duration: 300,
         easing: easings.linear,
         bounce: 0,
       },
@@ -189,7 +203,7 @@ const App = () => {
           positionY: window.innerHeight / 2,
           config: {
             easing: BezierEasing(0.05, 0.95, 0.205, 0.965),
-            duration: 1000,
+            duration: 750,
           },
         });
 
@@ -199,97 +213,52 @@ const App = () => {
           positionY: COIN_SIZE / 2,
           config: {
             easing: BezierEasing(0.93, 0.06, 0.84, 0.495),
-            // duration: 750,
-            duration: 1000,
+            duration: 750,
           },
         });
 
         const currentRotationV = rotationV.get();
+        const currentRotationH = rotationH.get();
 
-        // // Rotate the coin on the x-axis until the face is facing upwards.
-        // // Using roundRotationToClosestFace alone is insufficient since the rotation
-        // // must follow the current rotational direction of the coin.
-        let rotateVTillFace = roundToMultiple(
+        // v rotation till face of the coin will look right in screen
+        let vRotationToLookAtScreen = roundToMultiple(
           currentRotationV + (180 - (currentRotationV % 180)),
           180
         );
 
-        console.log({ rotateVTillFace });
-
-        // // rotateXTillFace % 2 will be 0
-        // // if we choose head but it's tail
-        // // if we choose tail buts it's head
-        const isOppositeVFace = rotateVTillFace % 360 === 0;
-
-        const currentRotationH = roundToMultiple(rotationH.get(), 180);
-
-        const isRotationHTail = currentRotationH % 360 !== 0;
-
-        const isCurrentTail =
-          (!isOppositeVFace && isRotationHTail) ||
-          (isOppositeVFace && !isRotationHTail);
-
         const newOutcome = getRandomBoolean();
 
-        // if (
-        //   (newOutcome === CHOICE.TAIL && !isCurrentTail) ||
-        //   (newOutcome === CHOICE.HEAD && isCurrentTail)
-        // ) {
-        //   rotateXTillFace -= NEXT_SIDE_ROTATION;
-        // } else {
-        //   // To make additional rotation to prevent coin falling flat without animations
-        //   rotateXTillFace -= FULL_ROTATION;
-        // }
-
-        // TODO:
         const tail = false;
         const head = true;
 
+        const isFront = isFrontSideLookingAtScreen(
+          vRotationToLookAtScreen,
+          roundToMultiple(currentRotationH, 180)
+        );
+
         if (
-          (newOutcome === tail && !isCurrentTail) ||
-          (newOutcome === head && isCurrentTail)
+          (newOutcome === tail && isFront) ||
+          (newOutcome === head && !isFront)
         ) {
-          rotateVTillFace += 180;
+          vRotationToLookAtScreen += 180;
         }
-        // else {
-        //   // To make additional rotation to prevent coin falling flat without animations
-        //   rotateVTillFace += 360;
-        // }
 
-        // let rotateZ = roundRotationToClosestFace(currentRotation[2]);
+        let updatedRotationH = currentRotationH;
 
-        // // If the label on the coin is upside down,
-        // // rotate the coin to make the label upright.
-        // if (rotateXTillFace % FULL_ROTATION === 0) {
-        //   rotateZ += NEXT_SIDE_ROTATION;
-        //   rotateXTillFace -= NEXT_SIDE_ROTATION;
+        const isUpsideDown = vRotationToLookAtScreen % 360 !== 0;
 
-        //   console.log({ rotateXTillFace });
+        // If the label on the coin is upside down,
+        // rotate the coin to make the label upright.
+        if (isUpsideDown) {
+          updatedRotationH = currentRotationH + 180;
 
-        //   api.set({
-        //     rotation: [rotateXTillFace, currentPosition[1], rotateZ],
-        //   });
+          api.set({
+            rotationH: updatedRotationH,
+            rotationV: currentRotationV + 180,
+          });
 
-        //   rotateXTillFace -= FULL_ROTATION;
-        // }
-
-        const updatedRotationH = currentRotationH;
-
-        // // If the label on the coin is upside down,
-        // // rotate the coin to make the label upright.
-        // if (rotateVTillFace % 360 === 0) {
-        //   updatedRotationH = currentRotationH + 180;
-        //   rotateVTillFace -= 180;
-
-        //   // console.log({ rotateXTillFace });
-
-        //   api.set({
-        //     rotationH: updatedRotationH,
-        //     rotationV: rotateVTillFace,
-        //   });
-
-        //   rotateVTillFace -= 180;
-        // }
+          vRotationToLookAtScreen += 180;
+        }
 
         // // playCoinFallSoundEffect();
 
@@ -297,22 +266,16 @@ const App = () => {
 
         await next({
           positionY: -window.innerHeight / 2,
-          rotationH: updatedRotationH,
-          rotationV: rotateVTillFace + 90,
+          rotationH: roundToMultiple(updatedRotationH, 180),
+          rotationV: vRotationToLookAtScreen + 90,
           onResolve: () => {
             setAppState(APP_STATE.OUTCOME);
             setCurrentOutcome(newOutcome === tail ? CHOICE.TAIL : CHOICE.HEAD);
           },
-          // rotation: [rotateXTillFace, currentRotation[1], rotateZ],
           config: {
-            easing: easings.linear,
-            duration: 1000,
-            // easing: easings.easeInOutBounce,
-            // duration: 300,
+            easing: easings.easeInOutBounce,
+            duration: 300,
           },
-          // onResolve: () => {
-          //   applyOutcomeState(newOutcome);
-          // },
         });
       },
       config: {
@@ -339,8 +302,6 @@ const App = () => {
     // per COIN_SIZE "y" movement do 180 deg rotation
     updatedV = initialV + ((movement[1] * -1) / COIN_SIZE) * 180;
 
-    console.log({ updatedV });
-
     if (updatedV > 90) {
       return throwCoin();
     }
@@ -351,8 +312,6 @@ const App = () => {
 
     let updatedY = rotationProgress * MAX_POSITION_Y;
 
-    console.log({ rotationProgress });
-
     if (!down) {
       updatedV = 0;
       updatedY = 0;
@@ -361,61 +320,16 @@ const App = () => {
     api.start({
       rotationV: updatedV,
       positionY: updatedY,
+      config: defaultConfig,
     });
 
     return {
       initialV,
     };
-    // if (down) {
-    //   updatedY = roundToMultiple(updatedY, 180);
-    // }
-
-    // const updatedXRotation =
-    //   initialRotation[0] + (movement[1] / aspect) * QUARTER_ROTATION;
-
-    // const xRotationToThrow = Math.abs(initialRotation[0]) + QUARTER_ROTATION;
-    // const updatedZRotation = roundRotationToClosestFace(z);
-
-    // if (Math.abs(updatedXRotation) >= xRotationToThrow) {
-    //   setAppState(APP_STATE.THROW);
-
-    //   api.set({
-    //     // round z because during throw it can be still animated
-    //     rotation: [updatedXRotation, y, updatedZRotation],
-    //   });
-    //   // after toggling useDrag's enabled prop from false to true,
-    //   // the down param is still in true causing unintentional interaction
-    //   // to prevent this we should cancel before setting enabled to false
-    //   cancel();
-
-    //   return;
-    // }
-
-    // if (down) {
-    //   // const rotationProgress =
-    //   //   (Math.abs(updatedXRotation) - Math.abs(initialRotation[0])) /
-    //   //   QUARTER_ROTATION;
-
-    //   // const updatePositionY =
-    //   //   initialPosition[1] +
-    //   //   rotationProgress * (INITIAL_CAMERA_POSITION[1] - initialPosition[1]);
-
-    //   // api.start({
-
-    //   //   // position: [initialPosition[0], updatePositionY, initialPosition[2]],
-    //   //   // rotation: [updatedXRotation, y, updatedZRotation],
-    //   // });
-    // } else {
-    //   api.start({
-    //     // position: [...initialPosition],
-    //     // rotation: [initialRotation[0], y, updatedZRotation],
-    //   });
-    // }
   };
 
   const reset = () => {
     restart();
-    // setAppState(APP_STATE.CHOICE);
 
     api.set({
       rotationV: 0,
@@ -424,11 +338,26 @@ const App = () => {
     });
   };
 
+  const coinChoiceTapBind = useDrag((state) => {
+    // console.log({ tap });
+    if (!state.tap || appState !== APP_STATE.CHOICE) {
+      return;
+    }
+  });
+
+  const coinThrowTapBind = useDrag((state) => {
+    // console.log({ tap });
+    if (!state.tap || appState !== APP_STATE.CHOICE) {
+      throwCoin();
+    }
+  });
+
   useDrag(
     (state) => {
       switch (appState) {
         case APP_STATE.CHOICE: {
           const { initial, axis, swipe, movement, delta, tap, down } = state;
+
           if (axis === "x") {
             return handleChangeSide(state);
           } else if (axis === "y") {
@@ -446,6 +375,10 @@ const App = () => {
               rotationV: v - 90,
               positionY: 0,
               onResolve: () => reset(),
+              config: {
+                duration: 500,
+                easing: easings.easeOutSine,
+              },
             });
           }
         }
@@ -475,6 +408,12 @@ const App = () => {
         <div
           className="absolute w-full flex items-center justify-center h-full"
           style={{
+            transform: styleTransform()
+              .translate3d({
+                // y: 200,
+              })
+              // .rotateX(-20)
+              .get(),
             // transform: "rotateX(-20deg) translateZ(200px)",
             // transform: "rotateX(-30deg)",
             transformOrigin: "center bottom 0",
@@ -484,11 +423,10 @@ const App = () => {
           <Environment />
 
           <animated.div
-            ref={coinRef}
-            className="absolute"
+            className="absolute touch-none"
             style={{
               transformStyle: "preserve-3d",
-              z: -PERSPECTIVE / 2,
+              z: -PERSPECTIVE / 1.5,
               y: positionY.to((y) => y * -1),
               rotateX: rotationV,
               rotateY: rotationH,
@@ -508,6 +446,14 @@ const App = () => {
               // }),
             }}
           >
+            <div
+              {...coinChoiceTapBind()}
+              className="absolute top-0 w-full h-4/5 bg-red-500/10"
+            />
+            <div
+              {...coinThrowTapBind()}
+              className="absolute bottom-0 w-full h-1/5 bg-blue-500/10"
+            />
             <Coin radius={COIN_SIZE} depth={20} />
           </animated.div>
         </div>
