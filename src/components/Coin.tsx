@@ -2,7 +2,15 @@ import clsx from "clsx";
 import { CircularText } from "./CircularText";
 import CircularSurface from "./CircularSurface";
 
-export const Coin = ({ radius, depth }: { radius: number; depth: number }) => {
+export const Coin = ({
+  radius,
+  depth,
+  className,
+}: {
+  radius: number;
+  depth: number;
+  className?: string;
+}) => {
   const frontZ = depth / 2;
   const backZ = -depth / 2;
   const size = radius * 2;
@@ -11,7 +19,7 @@ export const Coin = ({ radius, depth }: { radius: number; depth: number }) => {
 
   return (
     <div
-      className="font-mono text-2xl"
+      className={clsx("font-mono text-2xl", className)}
       style={{
         transformStyle: "preserve-3d",
         width: size,

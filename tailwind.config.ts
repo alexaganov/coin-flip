@@ -8,7 +8,15 @@ const config: Config = {
   },
 
   plugins: [
-    plugin(({ addBase }) => {
+    plugin(({ addBase, addUtilities }) => {
+      addUtilities({
+        ".flex-center": {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        },
+      });
+
       addBase({
         ".mask-image-fade-x": {
           "mask-image":
