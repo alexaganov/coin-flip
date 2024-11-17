@@ -65,6 +65,11 @@ const isFrontSideLookingAtScreen = (
 const App = () => {
   const windowInnerSize = useWindowInnerSize();
 
+  const windowInnerMaxSize = Math.max(
+    windowInnerSize.height,
+    windowInnerSize.width
+  );
+
   const CAMERA_INITIAL_POSITION_Y = 0;
   const COIN_RADIUS = 150;
   const COIN_DEPTH = 20;
@@ -72,11 +77,17 @@ const App = () => {
   //   Math.min(windowInnerSize.height, windowInnerSize.width) / 4,
   //   150
   // );
-  const COIN_INITIAL_POSITION_Y = -COIN_RADIUS / 2;
+  const COIN_INITIAL_THROW_POSITION_Y = 0; //-COIN_RADIUS / 2;
+  // const COIN_INITIAL_POSITION_Y = -COIN_RADIUS / 2;
   const FLOOR_POSITION_Y = COIN_RADIUS * 2;
 
-  const COIN_FLOOR_POSITION_Y = -(FLOOR_POSITION_Y - COIN_DEPTH / 2);
-  const COIN_POSITION_Z = -COIN_RADIUS * 2; //-PERSPECTIVE / 2;
+  // const COIN_FLOOR_POSITION_Y = -(FLOOR_POSITION_Y - COIN_DEPTH / 2);
+  const COIN_FLOOR_POSITION_Y = -(
+    (windowInnerMaxSize * 1.5) / 2 -
+    COIN_DEPTH / 2
+  );
+  const COIN_POSITION_Z = -PERSPECTIVE / 3;
+  // const COIN_POSITION_Z = -COIN_RADIUS * 2; //-PERSPECTIVE / 2;
 
   const appState = useAppStore((state) => state.appState);
   const setAppState = useAppStore((state) => state.setAppState);
@@ -89,8 +100,12 @@ const App = () => {
   const setChoice = useAppStore((state) => state.setChoice);
   const setCurrentOutcome = useAppStore((state) => state.setCurrentOutcome);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeSide, setActiveSide] = useState<ChoiceType>(CHOICE.HEAD);
+  // const [activeSide, setActiveSide] = useState<ChoiceType>(CHOICE.HEAD);
   // const windowInnerSize = useWindowInnerSize();
+
+  const coinColorSide = currentOutcome ?? currentChoice;
+  // const coinColor =
+  //   activeSide === CHOICE.HEAD ? "text-blue-500" : "text-red-500";
 
   const updateChoice = (rotationH: number) => {
     // console.log(" update choice ");
@@ -112,14 +127,14 @@ const App = () => {
     rotationH: number;
     rotationV: number;
   }) => {
-    setActiveSide(
-      isFrontSideLookingAtScreen(
-        roundToMultiple(rotationH, 180),
-        roundToMultiple(rotationV, 180)
-      )
-        ? CHOICE.HEAD
-        : CHOICE.TAIL
-    );
+    // setActiveSide(
+    //   isFrontSideLookingAtScreen(
+    //     roundToMultiple(rotationH, 180),
+    //     roundToMultiple(rotationV - 90, 180)
+    //   )
+    //     ? CHOICE.HEAD
+    //     : CHOICE.TAIL
+    // );
 
     if (appState === APP_STATE.CHOICE) {
       updateChoice(rotationH);
@@ -138,8 +153,7 @@ const App = () => {
   const [{ rotationV, positionY, rotationH }, api] = useSpring(() => ({
     rotationH: 0,
     rotationV: 0,
-    positionY: COIN_INITIAL_POSITION_Y,
-    cameraY: 0,
+    positionY: COIN_INITIAL_THROW_POSITION_Y,
     onChange: (result) => {
       handleSpringChangeRef.current?.({
         rotationH: result.value.rotationH,
@@ -161,8 +175,6 @@ const App = () => {
 
     const initialH = memo?.initialH ?? h;
     let updatedH = h;
-
-    // console.log({ event: event });
 
     if (tap) {
       const xProgress = xy[0] / window.innerWidth;
@@ -275,9 +287,9 @@ const App = () => {
           vRotationToLookAtScreen += 180;
         }
 
-        // // playCoinFallSoundEffect();
+        const outcome = newOutcome === tail ? CHOICE.TAIL : CHOICE.HEAD;
 
-        // setIsCameraLookingFromTop(true);
+        // // playCoinFallSoundEffect();
 
         await next({
           positionY: COIN_FLOOR_POSITION_Y,
@@ -289,7 +301,7 @@ const App = () => {
           rotationV: vRotationToLookAtScreen + 90,
           onResolve: () => {
             setAppState(APP_STATE.OUTCOME);
-            setCurrentOutcome(newOutcome === tail ? CHOICE.TAIL : CHOICE.HEAD);
+            setCurrentOutcome(outcome);
           },
           config: {
             easing: easings.easeInOutBounce,
@@ -330,16 +342,16 @@ const App = () => {
     const rotationProgress = updatedV / ROTATION_TO_THROW;
 
     const MAX_POSITION_Y_DISTANCE =
-      CAMERA_INITIAL_POSITION_Y - COIN_INITIAL_POSITION_Y || COIN_RADIUS / 2;
+      CAMERA_INITIAL_POSITION_Y - COIN_INITIAL_THROW_POSITION_Y ||
+      COIN_RADIUS / 2;
 
     let newPositionY =
-      COIN_INITIAL_POSITION_Y + rotationProgress * MAX_POSITION_Y_DISTANCE;
-
-    console.log({ newPositionY, MAX_POSITION_Y: MAX_POSITION_Y_DISTANCE });
+      COIN_INITIAL_THROW_POSITION_Y +
+      rotationProgress * MAX_POSITION_Y_DISTANCE;
 
     if (!down) {
       updatedV = 0;
-      newPositionY = COIN_INITIAL_POSITION_Y;
+      newPositionY = COIN_INITIAL_THROW_POSITION_Y;
     }
 
     api.start({
@@ -359,7 +371,7 @@ const App = () => {
     api.set({
       rotationV: 0,
       rotationH: currentOutcome === CHOICE.HEAD ? 0 : 180,
-      positionY: COIN_INITIAL_POSITION_Y,
+      positionY: COIN_INITIAL_THROW_POSITION_Y,
     });
   };
 
@@ -419,7 +431,7 @@ const App = () => {
               api.start({
                 // rotate back to show coin face at screen
                 rotationV: v - 90,
-                positionY: COIN_INITIAL_POSITION_Y,
+                positionY: COIN_INITIAL_THROW_POSITION_Y,
                 onResolve: () => reset(),
                 config: {
                   duration: 500,
@@ -460,7 +472,7 @@ const App = () => {
         }}
         className="relative select-none touch-none flex overflow-hidden items-center justify-center h-full"
       >
-        <Axis />
+        {/* <Axis /> */}
 
         <animated.div
           className="absolute w-full flex items-center justify-center h-full"
@@ -470,9 +482,9 @@ const App = () => {
             rotateY: cameraRotateY,
             transform: positionY.to((value) => {
               const distanceFromInitialToFloor =
-                COIN_INITIAL_POSITION_Y - COIN_FLOOR_POSITION_Y;
+                COIN_INITIAL_THROW_POSITION_Y - COIN_FLOOR_POSITION_Y;
               const currentDistanceFromInitialToFloor = Math.max(
-                COIN_INITIAL_POSITION_Y - value,
+                COIN_INITIAL_THROW_POSITION_Y - value,
                 0
               );
 
@@ -483,23 +495,30 @@ const App = () => {
               const translateY = currentDistanceProgress * COIN_RADIUS;
 
               const additionalRotationX = currentDistanceProgress * COIN_RADIUS;
+              const distanceToCoin =
+                COIN_POSITION_Z + COIN_DEPTH / 2 + translateZ / 2;
+              additionalRotationX; //+ (currentDistanceProgress * COIN_DEPTH) / 2;
 
-              const rotateX = radToDeg(
-                Math.atan2(
-                  value,
-                  (COIN_POSITION_Z + COIN_DEPTH / 2 + additionalRotationX) * -1
-                )
-              );
+              const rotateX = radToDeg(Math.atan2(value, distanceToCoin * -1));
+              // const rotateX = radToDeg(Math.atan2(value, hypot));
+              // const hypot = Math.hypot(translateY, translateZ);
 
               return styleTransform()
                 .translate3d({
-                  z: translateZ,
+                  // z: translateZ,
                   y: translateY,
                 })
                 .rotateX(rotateX)
                 .get();
             }),
-
+            color: to([rotationH, rotationV], (h, v) => {
+              return isFrontSideLookingAtScreen(
+                roundToMultiple(h, 180),
+                roundToMultiple(v, 360)
+              )
+                ? "var(--coin-head-color)"
+                : "var(--coin-tail-color";
+            }),
             // translateY: 100,
             // translateZ: -1000,
             // translateY: positionY.to((value) => {
@@ -525,6 +544,8 @@ const App = () => {
             transformStyle: "preserve-3d",
           }}
         >
+          <Environment floorY={300} floorSize={500} perspective={PERSPECTIVE} />
+
           <animated.div
             style={{
               // when we apply rotation on parent element this element can appear in view
@@ -536,23 +557,77 @@ const App = () => {
             }}
             className="absolute flex-center size-full"
           >
-            <div
+            <animated.div
               style={{
+                // transformStyle: "preserve-3d",
+                // .magicpattern {
+                // }
+
+                // width: 100%;
+                // height: 100%;
+                // backgroundColor: #e5e5f7;
+                maskImage: positionY.to((value) => {
+                  const distanceFromInitialToFloor =
+                    CAMERA_INITIAL_POSITION_Y - COIN_FLOOR_POSITION_Y;
+                  const currentDistanceFromInitialToFloor = Math.max(
+                    CAMERA_INITIAL_POSITION_Y - value,
+                    0
+                  );
+
+                  const currentDistanceProgress =
+                    currentDistanceFromInitialToFloor /
+                    distanceFromInitialToFloor;
+
+                  console.log({ currentDistanceProgress });
+
+                  return `radial-gradient(circle, rgba(0, 0, 0, 0.5) 0, rgba(0, 0, 0, 0) ${
+                    currentDistanceProgress * COIN_RADIUS + COIN_RADIUS
+                  }px)`;
+                }),
                 width: 500, //windowInnerSize.width * 2,
                 height: 500, //perspective * 2,
                 transform: styleTransform()
                   .translate3d({
                     y: FLOOR_POSITION_Y,
-                    // y: windowInnerSize.height / 2,
                     z: COIN_POSITION_Z,
                   })
                   .rotateX(90)
                   .get(),
               }}
-              className="absolute size-full border border-black"
+              className="absolute size-full transition-colors"
             >
-              Floor
-            </div>
+              <animated.div
+                style={{
+                  // rotateZ: 45,
+                  // opacity: 0.8,
+                  // transformStyle: "preserve-3d",
+                  backgroundSize: "20px 20px",
+                  backgroundImage: to([rotationH, rotationV], (h, v) => {
+                    const color = isFrontSideLookingAtScreen(
+                      roundToMultiple(h, 180),
+                      roundToMultiple(v, 360)
+                    )
+                      ? "var(--coin-head-color)"
+                      : "var(--coin-tail-color)";
+                    return [
+                      `linear-gradient(${color} 1px, transparent 1px)`,
+                      `linear-gradient(to right, ${color} 1px, transparent 1px)`,
+                    ].join();
+                    return;
+                  }),
+                }}
+                className="hidden absolute size-full"
+              />
+              {/* <animated.div
+                style={{
+                  backgroundPosition: "center",
+                  backgroundSize: "80%",
+                  backgroundRepeat: "no-repeat",
+                  backgroundImage: `radial-gradient(circle at center, transparent 0%, white 55%)`,
+                }}
+                className="absolute size-full"
+              /> */}
+            </animated.div>
 
             <div
               style={{
@@ -570,23 +645,21 @@ const App = () => {
                   // .rotateX(90)
                   .get(),
               }}
-              className="absolute size-full border border-black"
+              className="hidden absolute size-full border border-black"
             >
-              Floor
+              Wall
             </div>
-            {/* <Environment
-              floorY={300}
-              floorSize={500}
-              perspective={PERSPECTIVE}
-            /> */}
           </animated.div>
 
           <animated.div
             id="coin"
-            className="absolute touch-none rounded-full"
+            className={clsx(
+              "absolute touch-none flex-center rounded-full transition-colors"
+            )}
             style={{
               transformStyle: "preserve-3d",
               z: COIN_POSITION_Z,
+              willChange: "color, transform",
               y: positionY.to((y) => y * -1),
               rotateX: rotationV,
               rotateY: rotationH,
@@ -614,13 +687,16 @@ const App = () => {
           </animated.div>
         </animated.div>
 
-        <div className="absolute size-full flex justify-center items-center">
+        {/* <div className="absolute size-full flex justify-center items-center">
           <div className="absolute w-0.5 h-5 bg-black/40" />
           <div className="absolute w-5 h-0.5 bg-black/40" />
-        </div>
+        </div> */}
       </animated.div>
 
-      <HistoryList className="fixed bottom-0 left-0 right-0 w-full select-none flex-shrink-0 pt-1 px-8 pb-8 pr-[calc(50vw-16px)]" />
+      <div className="fixed bottom-0 flex gap-2 left-0 right-0 w-full select-none px-8 pb-8">
+        <div className="h-14 border-2 border-black flex-1 bg-white shadow-[4px_4px_0] shadow-black"></div>
+      </div>
+      {/* <HistoryList className="fixed bottom-0 left-0 right-0 w-full select-none flex-shrink-0 pt-1 px-8 pb-8 pr-[calc(50vw-16px)]" /> */}
     </main>
   );
 };

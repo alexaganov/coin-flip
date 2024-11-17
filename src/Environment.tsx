@@ -24,6 +24,20 @@ export const Environment = ({
     windowInnerSize.width
   );
 
+  const minSizeDimension = Math.min(
+    windowInnerSize.height,
+    windowInnerSize.width
+  );
+
+  // const depth = maxSizeDimension * 1.5;
+
+  const width = windowInnerSize.width * 1.5;
+  const height = windowInnerSize.height * 1.5;
+
+  const fadeOut = 0.95;
+  const commonClassName =
+    "absolute  text-black pattern-boxes-[100px] size-full border border-current";
+
   return (
     <div
       style={{
@@ -40,38 +54,104 @@ export const Environment = ({
     >
       <div
         style={{
-          height: floorSize,
-          width: floorSize,
-          // width: windowInnerSize.width * 2,
+          height,
+          width,
+          // maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) ${
+          //   fadeOut * 100
+          // }%)`,
           transform: styleTransform()
             .translate3d({
-              y: floorY - floorSize / 2,
-              z: -floorSize / 2,
-              // z: -floorSize / 2,
-              // z: -perspective,
+              z: -perspective,
             })
             .get(),
         }}
-        className="absolute size-full border border-black"
+        className={commonClassName}
       >
         Wall
       </div>
+
       <div
         style={{
-          width: floorSize, //windowInnerSize.width * 2,
-          height: floorSize, //perspective * 2,
+          height,
+          width,
+          maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
+            fadeOut * 100
+          }%)`,
           transform: styleTransform()
             .translate3d({
-              y: floorY,
+              y: height / 2,
               // y: windowInnerSize.height / 2,
-              z: 0,
+              z: height / 2 - perspective,
             })
             .rotateX(90)
             .get(),
         }}
-        className="absolute size-full border border-black"
+        className={commonClassName}
       >
         Floor
+      </div>
+
+      <div
+        style={{
+          height: height,
+          width: height, //windowInnerSize.width,
+          maskImage: `linear-gradient(to left, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
+            fadeOut * 100
+          }%)`,
+          transform: styleTransform()
+            .translate3d({
+              x: -width / 2,
+              // y: windowInnerSize.height / 2,
+              // y: windowInnerSize.height / 2,
+              z: height / 2 - perspective,
+            })
+            .rotateY(90)
+            .get(),
+        }}
+        className={commonClassName}
+      >
+        left Wall
+      </div>
+      <div
+        style={{
+          height: height,
+          width: height, //windowInnerSize.width,
+          maskImage: `linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
+            fadeOut * 100
+          }%)`,
+          transform: styleTransform()
+            .translate3d({
+              x: width / 2,
+              // y: windowInnerSize.height / 2,
+              // y: windowInnerSize.height / 2,
+              z: height / 2 - perspective,
+            })
+            .rotateY(-90)
+            .get(),
+        }}
+        className={commonClassName}
+      >
+        right Wall
+      </div>
+      <div
+        style={{
+          height,
+          width,
+          maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
+            fadeOut * 100
+          }%)`,
+          transform: styleTransform()
+            .translate3d({
+              y: -height / 2,
+              // y: windowInnerSize.height / 2,
+              z: height / 2 - perspective,
+            })
+            .rotateX(90)
+            .get(),
+        }}
+        className={commonClassName}
+      >
+        Celling
       </div>
     </div>
   );

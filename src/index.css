@@ -3,6 +3,22 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* --coin-head-color: #fcee0c;
+    --coin-tail-color: #03d8f3;
+    --bg-primary-color: #000;
+     */
+    --coin-head-color: #0000ff;
+    --coin-tail-color: #ff0000;
+    --bg-primary-color: #fff;
+  }
+
+  body {
+    font-family: "VT323", monospace;
+    font-weight: 400;
+    font-style: normal;
+  }
+
   html, body, #root {
     height: 100%;
   }

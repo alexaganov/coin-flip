@@ -15,11 +15,14 @@ export const Coin = ({
   const backZ = -depth / 2;
   const size = radius * 2;
 
-  const partClassName = "backdrop-blur-lg bg-white/50";
+  const partClassName = "bg-[--bg-primary-color]";
+
+  const sideClassName =
+    "absolute size-full overflow-hidden rounded-full border-4 border-current flex-center";
 
   return (
     <div
-      className={clsx("font-mono text-2xl", className)}
+      className={clsx("absolute flex-center text-2xl", className)}
       style={{
         transformStyle: "preserve-3d",
         width: size,
@@ -27,44 +30,62 @@ export const Coin = ({
       }}
     >
       <div
-        className={clsx(
-          "absolute text-blue-500 rounded-full w-full h-full border-4 border-current  flex items-center justify-center",
-          partClassName
-        )}
+        className={clsx(sideClassName, partClassName)}
         style={{
+          // boxShadow: "inset 0 0 100px currentcolor",
           transform: `translate3d(0, 0, ${frontZ}px)`,
         }}
       >
+        <div
+          style={{
+            opacity: 0.3,
+            backgroundImage:
+              "radial-gradient(circle at center, transparent 30%, currentcolor 100%)",
+          }}
+          className={clsx("absolute size-full", partClassName)}
+        />
         <div className="absolute">Head</div>
         <CircularText
           className="animate-[spin_60s_linear_infinite]"
           radius={radius}
           text="HEAD  *  "
         />
+
+        {/* <div className="absolute w-full h-px bg-green-500" />
+        <div className="absolute w-px h-full bg-red-500" /> */}
       </div>
 
       <div
-        className={clsx(
-          "absolute w-full h-full text-red-500 backdrop-blur-lg rounded-full border-4 border-current flex items-center justify-center",
-          partClassName
-        )}
+        className={clsx(sideClassName, partClassName)}
         style={{
           transform: `translate3d(0, 0, ${backZ}px) rotate3d(0, 1, 0, -180deg)`,
         }}
       >
+        <div
+          style={{
+            opacity: 0.3,
+            backgroundImage:
+              "radial-gradient(circle at center, transparent 30%, currentcolor 100%)",
+          }}
+          className={clsx("absolute size-full", partClassName)}
+        />
         <div className="absolute">Tail</div>
         <CircularText
           className="animate-[spin_60s_linear_infinite]"
           radius={radius}
           text="TAIL  *  "
         />
+
+        {/* <div className="absolute w-full h-px bg-green-500" />
+        <div className="absolute w-px h-full bg-red-500" /> */}
       </div>
 
       <CircularSurface
         radius={radius}
         depth={depth}
+        className="absolute size-full flex-center"
         segmentClassName={clsx(
-          "border-y-[3px] border-b-blue-500 border-t-red-500 py-0.5",
+          "border-y-[3px] border-y-current py-0.5",
           partClassName
         )}
         totalSegments={40}

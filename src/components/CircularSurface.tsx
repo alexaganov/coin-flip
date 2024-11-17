@@ -33,10 +33,7 @@ const CircularSurface = ({
         transformStyle: "preserve-3d",
         ...style,
       }}
-      className={clsx(
-        "absolute w-full h-full flex items-center justify-center",
-        className
-      )}
+      className={clsx(className)}
     >
       {Array.from({ length: totalSegments }, (_, i) => {
         const angle = segmentAngleStep * i;
