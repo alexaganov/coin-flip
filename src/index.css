@@ -8,9 +8,13 @@
     --coin-tail-color: #03d8f3;
     --bg-primary-color: #000;
      */
+     /* #e3ff41 */
+     /* #8414f5 */
     --coin-head-color: #0000ff;
     --coin-tail-color: #ff0000;
-    --bg-primary-color: #fff;
+    --bg-primary-color: #F1F1F1;
+    /* --bg-primary-color: #e3ff41; */
+    /* --env-grid-color: #e3ff41; */
   }
 
   body {

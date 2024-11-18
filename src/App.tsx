@@ -27,6 +27,12 @@ import { delay } from "./utils/promise";
 import { calculateZAxisProjection, degToRad, radToDeg } from "./utils/math";
 import { Environment } from "./Environment";
 import Axis from "./Axis";
+import Button from "./components/Button";
+import { Sliders } from "./components/icons/Sliders";
+import { ChevronLeft } from "./components/icons/ChevronLeft";
+import { ChevronRight } from "./components/icons/ChevronRight";
+import { ThrowCoin } from "./components/icons/ThrowCoin";
+import HistoryButton from "./HistoryButton";
 
 const PERSPECTIVE = 1000;
 
@@ -71,6 +77,7 @@ const App = () => {
   );
 
   const CAMERA_INITIAL_POSITION_Y = 0;
+  const CAMERA_INITIAL_POSITION_Z = -400;
   const COIN_RADIUS = 150;
   const COIN_DEPTH = 20;
   // Math.min(
@@ -86,7 +93,7 @@ const App = () => {
     (windowInnerMaxSize * 1.5) / 2 -
     COIN_DEPTH / 2
   );
-  const COIN_POSITION_Z = -PERSPECTIVE / 3;
+  const COIN_INITIAL_POSITION_Z = -PERSPECTIVE;
   // const COIN_POSITION_Z = -COIN_RADIUS * 2; //-PERSPECTIVE / 2;
 
   const appState = useAppStore((state) => state.appState);
@@ -141,10 +148,6 @@ const App = () => {
     }
   };
 
-  // console.log({ activeSide });
-
-  // console.log({ currentChoice });
-
   const [{ cameraZ, cameraRotateY }, cameraApi] = useSpring(() => ({
     cameraZ: 0,
     cameraRotateY: 0,
@@ -153,6 +156,7 @@ const App = () => {
   const [{ rotationV, positionY, rotationH }, api] = useSpring(() => ({
     rotationH: 0,
     rotationV: 0,
+    positionZ: COIN_INITIAL_POSITION_Z,
     positionY: COIN_INITIAL_THROW_POSITION_Y,
     onChange: (result) => {
       handleSpringChangeRef.current?.({
@@ -293,6 +297,7 @@ const App = () => {
 
         await next({
           positionY: COIN_FLOOR_POSITION_Y,
+          positionZ: COIN_INITIAL_POSITION_Z - 300,
           // floor level
           // positionY: -(window.innerHeight / 2),
           // y: windowInnerSize.height / 2,
@@ -458,7 +463,7 @@ const App = () => {
 
   return (
     <main className="relative flex flex-col h-full">
-      <div className="fixed z-10 right-0 select-none p-5 flex">
+      <div className="fixed z-10  max-w-3xl left-0 justify-end w-full mx-auto right-0 select-none p-10 flex">
         <ToggleAudioButton />
       </div>
 
@@ -478,7 +483,7 @@ const App = () => {
           className="absolute w-full flex items-center justify-center h-full"
           style={{
             transformOrigin: `center center 0`,
-            z: cameraZ,
+            z: cameraZ.to((value) => value - CAMERA_INITIAL_POSITION_Z),
             rotateY: cameraRotateY,
             transform: positionY.to((value) => {
               const distanceFromInitialToFloor =
@@ -490,13 +495,14 @@ const App = () => {
 
               const currentDistanceProgress =
                 currentDistanceFromInitialToFloor / distanceFromInitialToFloor;
-              const translateZ = currentDistanceProgress * -COIN_POSITION_Z;
+              const translateZ =
+                currentDistanceProgress * -COIN_INITIAL_POSITION_Z;
 
               const translateY = currentDistanceProgress * COIN_RADIUS;
 
               const additionalRotationX = currentDistanceProgress * COIN_RADIUS;
               const distanceToCoin =
-                COIN_POSITION_Z + COIN_DEPTH / 2 + translateZ / 2;
+                COIN_INITIAL_POSITION_Z + COIN_DEPTH / 2 + translateZ / 2;
               additionalRotationX; //+ (currentDistanceProgress * COIN_DEPTH) / 2;
 
               const rotateX = radToDeg(Math.atan2(value, distanceToCoin * -1));
@@ -511,14 +517,14 @@ const App = () => {
                 .rotateX(rotateX)
                 .get();
             }),
-            color: to([rotationH, rotationV], (h, v) => {
-              return isFrontSideLookingAtScreen(
-                roundToMultiple(h, 180),
-                roundToMultiple(v, 360)
-              )
-                ? "var(--coin-head-color)"
-                : "var(--coin-tail-color";
-            }),
+            // color: to([rotationH, rotationV], (h, v) => {
+            //   return isFrontSideLookingAtScreen(
+            //     roundToMultiple(h, 180),
+            //     roundToMultiple(v, 360)
+            //   )
+            //     ? "var(--coin-head-color)"
+            //     : "var(--coin-tail-color";
+            // }),
             // translateY: 100,
             // translateZ: -1000,
             // translateY: positionY.to((value) => {
@@ -589,7 +595,7 @@ const App = () => {
                 transform: styleTransform()
                   .translate3d({
                     y: FLOOR_POSITION_Y,
-                    z: COIN_POSITION_Z,
+                    z: COIN_INITIAL_POSITION_Z,
                   })
                   .rotateX(90)
                   .get(),
@@ -635,7 +641,7 @@ const App = () => {
                 height: 500, //perspective * 2,
                 transform: styleTransform()
                   .translate3d({
-                    z: COIN_POSITION_Z - 250,
+                    z: COIN_INITIAL_POSITION_Z - 250,
                     y: FLOOR_POSITION_Y - 500 / 2,
                     // y: floorY - floorSize / 2,
                     // z: -floorSize / 2,
@@ -658,7 +664,7 @@ const App = () => {
             )}
             style={{
               transformStyle: "preserve-3d",
-              z: COIN_POSITION_Z,
+              z: COIN_INITIAL_POSITION_Z,
               willChange: "color, transform",
               y: positionY.to((y) => y * -1),
               rotateX: rotationV,
@@ -693,8 +699,33 @@ const App = () => {
         </div> */}
       </animated.div>
 
-      <div className="fixed bottom-0 flex gap-2 left-0 right-0 w-full select-none px-8 pb-8">
-        <div className="h-14 border-2 border-black flex-1 bg-white shadow-[4px_4px_0] shadow-black"></div>
+      <div className="fixed mx-auto max-w-3xl justify-between right-0 items-end bottom-0 flex gap-5 left-0 w-full select-none px-10 pb-10">
+        <HistoryButton />
+
+        <div className="flex items-end flex-col gap-5">
+          <div className="button-group flex-col items-end">
+            {/* <div className="button-group">
+            </div> */}
+            <Button>
+              <ThrowCoin className="size-6" />
+            </Button>
+
+            <div className="button-group">
+              <Button>
+                <ChevronLeft className="size-6" />
+              </Button>
+
+              <Button>
+                <ChevronRight className="size-6" />
+              </Button>
+            </div>
+
+            <Button>
+              <Sliders className="size-6" />
+            </Button>
+          </div>
+        </div>
+        {/* <div className="h-14 border-2 border-black flex-1 bg-white shadow-[4px_4px_0] shadow-black"></div> */}
       </div>
       {/* <HistoryList className="fixed bottom-0 left-0 right-0 w-full select-none flex-shrink-0 pt-1 px-8 pb-8 pr-[calc(50vw-16px)]" /> */}
     </main>

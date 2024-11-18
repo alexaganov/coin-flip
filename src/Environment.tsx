@@ -34,9 +34,11 @@ export const Environment = ({
   const width = windowInnerSize.width * 1.5;
   const height = windowInnerSize.height * 1.5;
 
-  const fadeOut = 0.95;
+  const forwardDepth = perspective * 2;
+
+  const fadeOut = 1;
   const commonClassName =
-    "absolute  text-black pattern-boxes-[100px] size-full border border-current";
+    "absolute text-gray-200 pattern-boxes-[100px] size-full border border-current";
 
   return (
     <div
@@ -61,7 +63,7 @@ export const Environment = ({
           // }%)`,
           transform: styleTransform()
             .translate3d({
-              z: -perspective,
+              z: -forwardDepth,
             })
             .get(),
         }}
@@ -72,21 +74,28 @@ export const Environment = ({
 
       <div
         style={{
-          height,
+          height: forwardDepth,
           width,
-          maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
-            fadeOut * 100
-          }%)`,
+          // maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
+          //   fadeOut * 100
+          // }%)`,
+          // maskImage: `linear-gradient(to top, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 1) ${
+          //   fadeOut * 100
+          // }%)`,
           transform: styleTransform()
             .translate3d({
               y: height / 2,
               // y: windowInnerSize.height / 2,
-              z: height / 2 - perspective,
+              z: -forwardDepth / 2,
+              // z: height / 2 - perspective,
             })
             .rotateX(90)
             .get(),
         }}
-        className={commonClassName}
+        className={clsx(
+          commonClassName
+          // "animate-[move-bg-full-bottom_10s_linear_infinite]"
+        )}
       >
         Floor
       </div>
@@ -94,62 +103,80 @@ export const Environment = ({
       <div
         style={{
           height: height,
-          width: height, //windowInnerSize.width,
-          maskImage: `linear-gradient(to left, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
-            fadeOut * 100
-          }%)`,
+          width: forwardDepth, //windowInnerSize.width,
+          // maskImage: `linear-gradient(to left, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
+          //   fadeOut * 100
+          // }%)`,
+          // maskImage: `linear-gradient(to right, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 1) ${
+          //   fadeOut * 100
+          // }%)`,
           transform: styleTransform()
             .translate3d({
               x: -width / 2,
               // y: windowInnerSize.height / 2,
               // y: windowInnerSize.height / 2,
-              z: height / 2 - perspective,
+              z: -forwardDepth / 2,
             })
             .rotateY(90)
             .get(),
         }}
-        className={commonClassName}
+        className={clsx(
+          commonClassName
+          // "animate-[move-bg-full-left_10s_linear_infinite]"
+        )}
       >
         left Wall
       </div>
       <div
         style={{
           height: height,
-          width: height, //windowInnerSize.width,
-          maskImage: `linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
-            fadeOut * 100
-          }%)`,
+          width: forwardDepth, //windowInnerSize.width,
+          // maskImage: `linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
+          //   fadeOut * 100
+          // }%)`,
+          // maskImage: `linear-gradient(to left, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 1) ${
+          //   fadeOut * 100
+          // }%)`,
           transform: styleTransform()
             .translate3d({
               x: width / 2,
               // y: windowInnerSize.height / 2,
               // y: windowInnerSize.height / 2,
-              z: height / 2 - perspective,
+              z: -forwardDepth / 2,
             })
             .rotateY(-90)
             .get(),
         }}
-        className={commonClassName}
+        className={clsx(
+          commonClassName
+          // "animate-[move-bg-full-right_10s_linear_infinite]"
+        )}
       >
         right Wall
       </div>
       <div
         style={{
-          height,
+          height: forwardDepth,
           width,
-          maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
-            fadeOut * 100
-          }%)`,
+          // maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
+          //   fadeOut * 100
+          // }%)`,
+          // maskImage: `linear-gradient(to top, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 1) ${
+          //   fadeOut * 100
+          // }%)`,
           transform: styleTransform()
             .translate3d({
               y: -height / 2,
               // y: windowInnerSize.height / 2,
-              z: height / 2 - perspective,
+              z: -forwardDepth / 2,
             })
             .rotateX(90)
             .get(),
         }}
-        className={commonClassName}
+        className={clsx(
+          commonClassName
+          // "animate-[move-bg-full-bottom_10s_linear_infinite]"
+        )}
       >
         Celling
       </div>

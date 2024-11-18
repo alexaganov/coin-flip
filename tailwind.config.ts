@@ -4,16 +4,67 @@ import plugin from "tailwindcss/plugin";
 const config: Config = {
   content: ["./src/**/*.{ts,js,tsx,jsx}", "./index.html"],
   theme: {
-    extend: {},
+    extend: {
+      keyframes: {
+        "move-bg-full-bottom": {
+          "0%": { backgroundPosition: "0 0" },
+          "100%": { backgroundPosition: "0 100%" },
+        },
+        "move-bg-full-right": {
+          "0%": { backgroundPosition: "0 0" },
+          "100%": { backgroundPosition: "100% 0" },
+        },
+        "move-bg-full-left": {
+          "0%": { backgroundPosition: "0 0" },
+          "100%": { backgroundPosition: "-100% 0" },
+        },
+      },
+    },
   },
-
   plugins: [
-    plugin(({ matchUtilities, theme, addUtilities }) => {
+    plugin(({ matchUtilities, theme, addComponents, addUtilities }) => {
+      addComponents({
+        ".button-group": {
+          display: "flex",
+          padding: "1px",
+
+          "& > *": {
+            margin: "-1px",
+          },
+        },
+      });
+
+      matchUtilities(
+        {
+          "nb-shadow": (value) => {
+            const length = Number(value);
+
+            return {
+              boxShadow: `${value}px ${value}px var(--tw-shadow-color)`,
+              // Array.from({ length }, (_, i) => {
+              //   const offset = i + 1;
+
+              //   return `${offset}px ${offset}px var(--tw-shadow-color)`;
+              // }).join(", "),
+              // "linear-gradient(currentcolor 2px, transparent 2px), linear-gradient(to right, currentcolor 2px, transparent 2px)",
+              // backgroundSize: `${value} ${value}`,
+            };
+          },
+        },
+        {
+          values: {
+            1: 1,
+            2: 2,
+            4: 4,
+          },
+        }
+      );
+
       matchUtilities(
         {
           "pattern-boxes": (value) => ({
             backgroundImage:
-              "linear-gradient(currentcolor 1px, transparent 1px), linear-gradient(to right, currentcolor 1px, transparent 1px)",
+              "linear-gradient(currentcolor 2px, transparent 2px), linear-gradient(to right, currentcolor 2px, transparent 2px)",
             backgroundSize: `${value} ${value}`,
           }),
         },

@@ -30,7 +30,11 @@ export const Coin = ({
       }}
     >
       <div
-        className={clsx(sideClassName, partClassName)}
+        className={clsx(
+          sideClassName,
+          partClassName,
+          "text-[var(--coin-head-color)]"
+        )}
         style={{
           // boxShadow: "inset 0 0 100px currentcolor",
           transform: `translate3d(0, 0, ${frontZ}px)`,
@@ -56,7 +60,11 @@ export const Coin = ({
       </div>
 
       <div
-        className={clsx(sideClassName, partClassName)}
+        className={clsx(
+          sideClassName,
+          partClassName,
+          "text-[var(--coin-tail-color)]"
+        )}
         style={{
           transform: `translate3d(0, 0, ${backZ}px) rotate3d(0, 1, 0, -180deg)`,
         }}
@@ -83,14 +91,16 @@ export const Coin = ({
       <CircularSurface
         radius={radius}
         depth={depth}
-        className="absolute size-full flex-center"
+        className="absolute size-full text-black flex-center"
         segmentClassName={clsx(
-          "border-y-[3px] border-y-current py-0.5",
+          "border-y-[3px] border-b-[var(--coin-head-color)] border-t-[var(--coin-tail-color)] py-0.5",
           partClassName
         )}
         totalSegments={40}
         render={() => {
-          return <div className="h-full w-0.5 bg-current" />;
+          return (
+            <div className="h-full w-0.5 bg-gradient-to-b from-[var(--coin-tail-color)] to-[var(--coin-head-color)] " />
+          );
         }}
       />
     </div>
