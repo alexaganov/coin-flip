@@ -24,6 +24,57 @@ const config: Config = {
   plugins: [
     plugin(({ matchUtilities, theme, addComponents, addUtilities }) => {
       addComponents({
+        ".btn": {
+          "--btn-contrast-color": "#000",
+          // '--btn-contrast-muted-color': "#777",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+
+          "&:disabled, &-disabled, &-muted": {
+            "--btn-contrast-color": "#777",
+            color: "var(--btn-contrast-color)",
+          },
+
+          // "&:disabled &-shadow, &-disabled &-shadow": {
+          //   backgroundColor: "#777",
+          // },
+
+          "&:disabled &-content, &-disabled &-content": {
+            transform: `translate3d(0.125rem, 0.125rem, 0)`,
+          },
+
+          "&-content": {
+            position: "relative",
+            width: "100%",
+            padding: "0 1rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: "3.75rem",
+            minHeight: "3.75rem",
+            border: "2px solid var(--btn-contrast-color)",
+            transition: "all 0.1s ease-out",
+            background: "#fff",
+          },
+
+          "&:active &-content, &-active &-content": {
+            transform: `translate3d(0.125rem, 0.125rem, 0)`,
+          },
+
+          "&-shadow": {
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            backgroundColor: "var(--btn-contrast-color)",
+            transform: `translate3d(0.25rem, 0.25rem, 0)`,
+            zIndex: "-1",
+          },
+        },
+      });
+
+      addComponents({
         ".button-group": {
           display: "flex",
           padding: "1px",
@@ -36,33 +87,7 @@ const config: Config = {
 
       matchUtilities(
         {
-          "nb-shadow": (value) => {
-            const length = Number(value);
-
-            return {
-              boxShadow: `${value}px ${value}px var(--tw-shadow-color)`,
-              // Array.from({ length }, (_, i) => {
-              //   const offset = i + 1;
-
-              //   return `${offset}px ${offset}px var(--tw-shadow-color)`;
-              // }).join(", "),
-              // "linear-gradient(currentcolor 2px, transparent 2px), linear-gradient(to right, currentcolor 2px, transparent 2px)",
-              // backgroundSize: `${value} ${value}`,
-            };
-          },
-        },
-        {
-          values: {
-            1: 1,
-            2: 2,
-            4: 4,
-          },
-        }
-      );
-
-      matchUtilities(
-        {
-          "pattern-boxes": (value) => ({
+          "pattern-grid": (value) => ({
             backgroundImage:
               "linear-gradient(currentcolor 2px, transparent 2px), linear-gradient(to right, currentcolor 2px, transparent 2px)",
             backgroundSize: `${value} ${value}`,

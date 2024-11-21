@@ -3,7 +3,7 @@ import { APP_STATE, AppState, CHOICE, ChoiceType } from "./type";
 import { persist } from "zustand/middleware";
 import { generateUUID } from "three/src/math/MathUtils.js";
 
-interface HistoryRecord {
+export interface HistoryRecord {
   id: string;
   choice: ChoiceType;
   outcome: ChoiceType;

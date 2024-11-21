@@ -1,38 +1,25 @@
-import { Canvas } from "@react-three/fiber";
-
-import { lazy, ReactNode, Suspense, useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import clsx from "clsx";
-import { APP_STATE, CHOICE, ChoiceType } from "./type";
+import { APP_STATE, CHOICE } from "./type";
 import { useAppStore } from "./store";
-import { useTransition } from "react-spring";
-import { animated, easings, to, useSpring } from "@react-spring/web";
-import { SpeakerWave } from "./components/icons/SpeakerWave";
-import { SpeakerXMark } from "./components/icons/SpeakerXMark";
-import { useDimension } from "./hooks/useDimensions";
-import { useWindowInnerSize } from "./hooks/useWindowInnerSize";
+import { animated, easings, useSpring } from "@react-spring/web";
 import { Coin } from "./components/Coin";
 import { ToggleAudioButton } from "./ToggleAudioButton";
 import { styleTransform } from "./utils/css";
-import { HistoryList } from "./HistoryList";
-import {
-  FullGestureState,
-  useDrag,
-  useGesture,
-  usePinch,
-} from "@use-gesture/react";
+import { FullGestureState, useGesture } from "@use-gesture/react";
 import { getRandomBoolean, roundToMultiple } from "./utils/number";
 
 import BezierEasing from "bezier-easing";
 import { delay } from "./utils/promise";
 import { calculateZAxisProjection, degToRad, radToDeg } from "./utils/math";
 import { Environment } from "./Environment";
-import Axis from "./Axis";
 import Button from "./components/Button";
-import { Sliders } from "./components/icons/Sliders";
 import { ChevronLeft } from "./components/icons/ChevronLeft";
 import { ChevronRight } from "./components/icons/ChevronRight";
 import { ThrowCoin } from "./components/icons/ThrowCoin";
 import HistoryButton from "./HistoryButton";
+import { Refresh } from "./components/icons/Refresh";
+import { useSoundEffects } from "./SoundEffectsProvider";
 
 const PERSPECTIVE = 1000;
 
@@ -69,59 +56,33 @@ const isFrontSideLookingAtScreen = (
 };
 
 const App = () => {
-  const windowInnerSize = useWindowInnerSize();
-
-  const windowInnerMaxSize = Math.max(
-    windowInnerSize.height,
-    windowInnerSize.width
-  );
+  const { soundEffects } = useSoundEffects();
 
   const CAMERA_INITIAL_POSITION_Y = 0;
-  const CAMERA_INITIAL_POSITION_Z = -400;
-  const COIN_RADIUS = 150;
+  const CAMERA_INITIAL_POSITION_Z = 0;
+  const COIN_RADIUS = 180;
   const COIN_DEPTH = 20;
   // Math.min(
   //   Math.min(windowInnerSize.height, windowInnerSize.width) / 4,
   //   150
   // );
-  const COIN_INITIAL_THROW_POSITION_Y = 0; //-COIN_RADIUS / 2;
-  // const COIN_INITIAL_POSITION_Y = -COIN_RADIUS / 2;
-  const FLOOR_POSITION_Y = COIN_RADIUS * 2;
+  const COIN_INITIAL_THROW_POSITION_Y = -COIN_RADIUS / 2;
+  // const FLOOR_POSITION_Y = COIN_RADIUS * 2;
 
   // const COIN_FLOOR_POSITION_Y = -(FLOOR_POSITION_Y - COIN_DEPTH / 2);
-  const COIN_FLOOR_POSITION_Y = -(
-    (windowInnerMaxSize * 1.5) / 2 -
-    COIN_DEPTH / 2
-  );
-  const COIN_INITIAL_POSITION_Z = -PERSPECTIVE;
+  const COIN_FLOOR_POSITION_Y = -(PERSPECTIVE / 2 - COIN_DEPTH / 2);
+  const COIN_INITIAL_POSITION_Z = -PERSPECTIVE / 2;
   // const COIN_POSITION_Z = -COIN_RADIUS * 2; //-PERSPECTIVE / 2;
 
   const appState = useAppStore((state) => state.appState);
   const setAppState = useAppStore((state) => state.setAppState);
   const restart = useAppStore((state) => state.restart);
-  const isAudioMuted = useAppStore((state) => state.isAudioMuted);
 
   // const choice = useAppStore((state) => state.currentChoice);
   const currentOutcome = useAppStore((state) => state.currentOutcome);
   const currentChoice = useAppStore((state) => state.currentChoice);
   const setChoice = useAppStore((state) => state.setChoice);
   const setCurrentOutcome = useAppStore((state) => state.setCurrentOutcome);
-  const containerRef = useRef<HTMLDivElement>(null);
-  // const [activeSide, setActiveSide] = useState<ChoiceType>(CHOICE.HEAD);
-  // const windowInnerSize = useWindowInnerSize();
-
-  const coinColorSide = currentOutcome ?? currentChoice;
-  // const coinColor =
-  //   activeSide === CHOICE.HEAD ? "text-blue-500" : "text-red-500";
-
-  const updateChoice = (rotationH: number) => {
-    // console.log(" update choice ");
-    const nextChoice =
-      roundToMultiple(rotationH, 180) % 360 === 0 ? CHOICE.HEAD : CHOICE.TAIL;
-
-    // console.log({ nextChoice });
-    setChoice(nextChoice);
-  };
 
   const handleSpringChangeRef = useRef<
     ((params: { rotationV: number; rotationH: number }) => void) | null
@@ -129,26 +90,21 @@ const App = () => {
 
   handleSpringChangeRef.current = ({
     rotationH,
-    rotationV,
   }: {
     rotationH: number;
     rotationV: number;
   }) => {
-    // setActiveSide(
-    //   isFrontSideLookingAtScreen(
-    //     roundToMultiple(rotationH, 180),
-    //     roundToMultiple(rotationV - 90, 180)
-    //   )
-    //     ? CHOICE.HEAD
-    //     : CHOICE.TAIL
-    // );
-
-    if (appState === APP_STATE.CHOICE) {
-      updateChoice(rotationH);
+    if (appState !== APP_STATE.CHOICE) {
+      return;
     }
+
+    const nextChoice =
+      roundToMultiple(rotationH, 180) % 360 === 0 ? CHOICE.HEAD : CHOICE.TAIL;
+
+    setChoice(nextChoice);
   };
 
-  const [{ cameraZ, cameraRotateY }, cameraApi] = useSpring(() => ({
+  const [{ cameraZ, cameraRotateY }] = useSpring(() => ({
     cameraZ: 0,
     cameraRotateY: 0,
   }));
@@ -156,7 +112,6 @@ const App = () => {
   const [{ rotationV, positionY, rotationH }, api] = useSpring(() => ({
     rotationH: 0,
     rotationV: 0,
-    positionZ: COIN_INITIAL_POSITION_Z,
     positionY: COIN_INITIAL_THROW_POSITION_Y,
     onChange: (result) => {
       handleSpringChangeRef.current?.({
@@ -167,32 +122,20 @@ const App = () => {
   }));
 
   const handleChangeSide = ({
-    swipe,
     movement,
     down,
     memo,
-    xy,
-    tap,
-    event,
   }: FullGestureState<"drag">) => {
     const h = rotationH.get();
 
     const initialH = memo?.initialH ?? h;
+
     let updatedH = h;
 
-    if (tap) {
-      const xProgress = xy[0] / window.innerWidth;
-      const dir = xProgress >= 0.5 ? 1 : -1;
+    updatedH = initialH + (movement[0] / COIN_RADIUS) * 180;
 
-      updatedH = roundToMultiple(h + dir * 180, 180);
-    } else if (swipe[0] !== 0) {
-      updatedH = roundToMultiple(h + swipe[0] * 180, 180);
-    } else {
-      updatedH = initialH + (movement[0] / COIN_RADIUS) * 180;
-
-      if (!down) {
-        updatedH = roundToMultiple(updatedH, 180);
-      }
+    if (!down) {
+      updatedH = roundToMultiple(updatedH, 180);
     }
 
     api.start({
@@ -205,7 +148,34 @@ const App = () => {
     };
   };
 
+  const turnCoinInDirection = (dir: -1 | 1) => {
+    if (appState !== APP_STATE.CHOICE) {
+      return;
+    }
+
+    const h = rotationH.get();
+
+    api.start({
+      rotationH: roundToMultiple(h + dir * 180, 180),
+      config: defaultConfig,
+    });
+  };
+
+  const turnCoinLeft = () => {
+    turnCoinInDirection(-1);
+  };
+
+  const turnCoinRight = () => {
+    turnCoinInDirection(1);
+  };
+
   const throwCoin = () => {
+    if (appState !== APP_STATE.CHOICE) {
+      return;
+    }
+
+    soundEffects.coinThrow.play();
+
     setAppState(APP_STATE.THROW);
 
     const currentRotationV = rotationV.get();
@@ -229,8 +199,7 @@ const App = () => {
     api.start({
       to: async (next) => {
         await next({
-          // positionY: window.innerHeight / 2,
-          positionY: window.innerHeight,
+          positionY: PERSPECTIVE,
           config: {
             easing: BezierEasing(0.05, 0.95, 0.205, 0.965),
             duration: 1000,
@@ -240,11 +209,10 @@ const App = () => {
         await delay(50);
 
         await next({
-          positionY: COIN_RADIUS / 2,
+          positionY: COIN_FLOOR_POSITION_Y + COIN_RADIUS,
           config: {
             easing: BezierEasing(0.93, 0.06, 0.84, 0.495),
             duration: 750,
-            // duration: 5000,
           },
         });
 
@@ -293,15 +261,11 @@ const App = () => {
 
         const outcome = newOutcome === tail ? CHOICE.TAIL : CHOICE.HEAD;
 
-        // // playCoinFallSoundEffect();
+        soundEffects.coinThrow.stop();
+        soundEffects.coinFall.play();
 
         await next({
           positionY: COIN_FLOOR_POSITION_Y,
-          positionZ: COIN_INITIAL_POSITION_Z - 300,
-          // floor level
-          // positionY: -(window.innerHeight / 2),
-          // y: windowInnerSize.height / 2,
-          // z: -perspective / 2,
           rotationH: roundToMultiple(updatedRotationH, 180),
           rotationV: vRotationToLookAtScreen + 90,
           onResolve: () => {
@@ -310,7 +274,7 @@ const App = () => {
           },
           config: {
             easing: easings.easeInOutBounce,
-            duration: 300,
+            duration: soundEffects.coinFall.duration,
           },
         });
       },
@@ -371,45 +335,49 @@ const App = () => {
   };
 
   const reset = () => {
-    restart();
+    const v = rotationV.get();
 
-    api.set({
-      rotationV: 0,
-      rotationH: currentOutcome === CHOICE.HEAD ? 0 : 180,
+    setAppState(APP_STATE.RESTART);
+
+    api.start({
+      // rotate back to show coin face at screen
+      rotationV: v - 90,
       positionY: COIN_INITIAL_THROW_POSITION_Y,
+      onResolve: () => {
+        restart();
+
+        api.set({
+          rotationV: 0,
+          rotationH: currentOutcome === CHOICE.HEAD ? 0 : 180,
+          positionY: COIN_INITIAL_THROW_POSITION_Y,
+        });
+      },
+      config: {
+        duration: 500,
+        easing: easings.easeOutSine,
+      },
     });
   };
 
   const containerBind = useGesture(
     {
-      onWheel: (state) => {
-        // console.log({ wheel: state.offset });
-        cameraApi.set({
-          cameraZ: state.offset[1] * -1,
-          cameraRotateY: state.offset[0],
-        });
-        // if (state.axis === "y") {
-        //   cameraZ.set();
-        // }
+      // onWheel: (state) => {
+      //   // console.log({ wheel: state.offset });
+      //   cameraApi.set({
+      //     cameraZ: state.offset[1] * -1,
+      //     cameraRotateY: state.offset[0],
+      //   });
+      //   // if (state.axis === "y") {
+      //   //   cameraZ.set();
+      //   // }
 
-        // if ()
-        // console.log(" pinch", state);
-      },
+      //   // if ()
+      //   // console.log(" pinch", state);
+      // },
       onDrag: (state) => {
         switch (appState) {
           case APP_STATE.CHOICE: {
-            const {
-              initial,
-              axis,
-              swipe,
-              event,
-              pressed,
-              movement,
-              delta,
-              tap,
-              type,
-              down,
-            } = state;
+            const { axis, tap, xy, swipe } = state;
 
             // TODO: long press infinite rotation + swipe up to throw
 
@@ -421,6 +389,15 @@ const App = () => {
             //   return throwCoin();
             // } else
             if (axis === "x" || tap) {
+              if (tap) {
+                const xProgress = xy[0] / window.innerWidth;
+                const dir = xProgress >= 0.5 ? 1 : -1;
+
+                return turnCoinInDirection(dir);
+              } else if (swipe[0] !== 0) {
+                return turnCoinInDirection(swipe[0] as 1 | -1);
+              }
+
               return handleChangeSide(state);
             } else if (axis === "y") {
               return handlePrepareThrow(state);
@@ -431,18 +408,7 @@ const App = () => {
 
           case APP_STATE.OUTCOME: {
             if (state.active) {
-              const v = rotationV.get();
-
-              api.start({
-                // rotate back to show coin face at screen
-                rotationV: v - 90,
-                positionY: COIN_INITIAL_THROW_POSITION_Y,
-                onResolve: () => reset(),
-                config: {
-                  duration: 500,
-                  easing: easings.easeOutSine,
-                },
-              });
+              reset();
             }
           }
         }
@@ -454,31 +420,42 @@ const App = () => {
           mouse: 2,
         },
       },
-      // target: containerRef,
-      // eventOptions: {
-      //   capture: false,
-      // },
     }
   );
 
-  return (
-    <main className="relative flex flex-col h-full">
-      <div className="fixed z-10  max-w-3xl left-0 justify-end w-full mx-auto right-0 select-none p-10 flex">
-        <ToggleAudioButton />
-      </div>
+  const handleActionButtonClick = () => {
+    if (appState === APP_STATE.CHOICE) {
+      throwCoin();
+    } else if (appState === APP_STATE.OUTCOME) {
+      reset();
+    }
+  };
 
-      <animated.div
+  return (
+    <main
+      style={{
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
+        "--current-face-color": `var(${
+          currentChoice === CHOICE.HEAD
+            ? "--coin-head-color"
+            : "--coin-tail-color"
+        })`,
+        "--opposite-face-color": `var(${
+          currentChoice === CHOICE.HEAD
+            ? "--coin-tail-color"
+            : "--coin-head-color"
+        })`,
+      }}
+      className="relative flex flex-col h-full"
+    >
+      <div
         {...containerBind()}
         style={{
           perspective: PERSPECTIVE,
-          // perspectiveOrigin: positionY.to((value) => {
-          //   return `center calc(50% + ${value}px)`;
-          // }),
         }}
         className="relative select-none touch-none flex overflow-hidden items-center justify-center h-full"
       >
-        {/* <Axis /> */}
-
         <animated.div
           className="absolute w-full flex items-center justify-center h-full"
           style={{
@@ -495,167 +472,32 @@ const App = () => {
 
               const currentDistanceProgress =
                 currentDistanceFromInitialToFloor / distanceFromInitialToFloor;
-              const translateZ =
-                currentDistanceProgress * -COIN_INITIAL_POSITION_Z;
+              const cameraTranslateZ =
+                currentDistanceProgress * Math.abs(COIN_INITIAL_POSITION_Z);
 
-              const translateY = currentDistanceProgress * COIN_RADIUS;
+              // const cameraTranslateY = currentDistanceProgress * 250;
+              // // TODO: figure out formula to calc angle
+              // const cameraRotateZ = currentDistanceProgress * 20.65;
 
-              const additionalRotationX = currentDistanceProgress * COIN_RADIUS;
-              const distanceToCoin =
-                COIN_INITIAL_POSITION_Z + COIN_DEPTH / 2 + translateZ / 2;
-              additionalRotationX; //+ (currentDistanceProgress * COIN_DEPTH) / 2;
-
-              const rotateX = radToDeg(Math.atan2(value, distanceToCoin * -1));
-              // const rotateX = radToDeg(Math.atan2(value, hypot));
-              // const hypot = Math.hypot(translateY, translateZ);
+              const rotateX = radToDeg(
+                Math.atan2(
+                  value + (currentDistanceProgress * COIN_DEPTH) / 2,
+                  -COIN_INITIAL_POSITION_Z
+                )
+              );
 
               return styleTransform()
                 .translate3d({
-                  // z: translateZ,
-                  y: translateY,
+                  z: cameraTranslateZ,
                 })
                 .rotateX(rotateX)
                 .get();
             }),
-            // color: to([rotationH, rotationV], (h, v) => {
-            //   return isFrontSideLookingAtScreen(
-            //     roundToMultiple(h, 180),
-            //     roundToMultiple(v, 360)
-            //   )
-            //     ? "var(--coin-head-color)"
-            //     : "var(--coin-tail-color";
-            // }),
-            // translateY: 100,
-            // translateZ: -1000,
-            // translateY: positionY.to((value) => {
-
-            //   return v * -1;
-            //   // windowInnerSize.height - PERSPECTIVE / 2
-            //   // return radToDeg(value / (window.innerHeight / 2 + COIN_SIZE));
-            //   // return 1000 - Math.hypot(value, 1000);
-            // }),
-            // translateZ: positionY.to((value) => {
-            //   const v = Math.min(value, 0);
-
-            //   return v * -1;
-            //   // windowInnerSize.height - PERSPECTIVE / 2
-            //   // return radToDeg(value / (window.innerHeight / 2 + COIN_SIZE));
-            //   // return 1000 - Math.hypot(value, 1000);
-            // }),
-
-            // look at coin center
-            // rotateX: positionY.to((value) => {
-            //   return ;
-            // }),
+            willChange: "transform",
             transformStyle: "preserve-3d",
           }}
         >
           <Environment floorY={300} floorSize={500} perspective={PERSPECTIVE} />
-
-          <animated.div
-            style={{
-              // when we apply rotation on parent element this element can appear in view
-              // to prevent this we are moving it outside of view
-              z: positionY.to((value) => {
-                return -Math.max(value, 0);
-              }),
-              transformStyle: "preserve-3d",
-            }}
-            className="absolute flex-center size-full"
-          >
-            <animated.div
-              style={{
-                // transformStyle: "preserve-3d",
-                // .magicpattern {
-                // }
-
-                // width: 100%;
-                // height: 100%;
-                // backgroundColor: #e5e5f7;
-                maskImage: positionY.to((value) => {
-                  const distanceFromInitialToFloor =
-                    CAMERA_INITIAL_POSITION_Y - COIN_FLOOR_POSITION_Y;
-                  const currentDistanceFromInitialToFloor = Math.max(
-                    CAMERA_INITIAL_POSITION_Y - value,
-                    0
-                  );
-
-                  const currentDistanceProgress =
-                    currentDistanceFromInitialToFloor /
-                    distanceFromInitialToFloor;
-
-                  console.log({ currentDistanceProgress });
-
-                  return `radial-gradient(circle, rgba(0, 0, 0, 0.5) 0, rgba(0, 0, 0, 0) ${
-                    currentDistanceProgress * COIN_RADIUS + COIN_RADIUS
-                  }px)`;
-                }),
-                width: 500, //windowInnerSize.width * 2,
-                height: 500, //perspective * 2,
-                transform: styleTransform()
-                  .translate3d({
-                    y: FLOOR_POSITION_Y,
-                    z: COIN_INITIAL_POSITION_Z,
-                  })
-                  .rotateX(90)
-                  .get(),
-              }}
-              className="absolute size-full transition-colors"
-            >
-              <animated.div
-                style={{
-                  // rotateZ: 45,
-                  // opacity: 0.8,
-                  // transformStyle: "preserve-3d",
-                  backgroundSize: "20px 20px",
-                  backgroundImage: to([rotationH, rotationV], (h, v) => {
-                    const color = isFrontSideLookingAtScreen(
-                      roundToMultiple(h, 180),
-                      roundToMultiple(v, 360)
-                    )
-                      ? "var(--coin-head-color)"
-                      : "var(--coin-tail-color)";
-                    return [
-                      `linear-gradient(${color} 1px, transparent 1px)`,
-                      `linear-gradient(to right, ${color} 1px, transparent 1px)`,
-                    ].join();
-                    return;
-                  }),
-                }}
-                className="hidden absolute size-full"
-              />
-              {/* <animated.div
-                style={{
-                  backgroundPosition: "center",
-                  backgroundSize: "80%",
-                  backgroundRepeat: "no-repeat",
-                  backgroundImage: `radial-gradient(circle at center, transparent 0%, white 55%)`,
-                }}
-                className="absolute size-full"
-              /> */}
-            </animated.div>
-
-            <div
-              style={{
-                width: 500, //windowInnerSize.width * 2,
-                height: 500, //perspective * 2,
-                transform: styleTransform()
-                  .translate3d({
-                    z: COIN_INITIAL_POSITION_Z - 250,
-                    y: FLOOR_POSITION_Y - 500 / 2,
-                    // y: floorY - floorSize / 2,
-                    // z: -floorSize / 2,
-                    // y: windowInnerSize.height / 2,
-                    // z: COIN_POSITION_Z,
-                  })
-                  // .rotateX(90)
-                  .get(),
-              }}
-              className="hidden absolute size-full border border-black"
-            >
-              Wall
-            </div>
-          </animated.div>
 
           <animated.div
             id="coin"
@@ -665,30 +507,16 @@ const App = () => {
             style={{
               transformStyle: "preserve-3d",
               z: COIN_INITIAL_POSITION_Z,
-              willChange: "color, transform",
               y: positionY.to((y) => y * -1),
+              willChange: "transform",
               rotateX: rotationV,
               rotateY: rotationH,
-              // rotateX: rotateZ,
-              // transform: to([rotationV, rotationH], (v, h) => {
-              //   return `rotateX(${v}deg) rotateY(${h}deg)`;
-              // }),
-              // rotateY,
-              // rotateZ,
-              // transform: rotateZ.to((value) => {
-              //   return styleTransform()
-              //     .translate3d({
-              //       z:
-              //     })
-              //     .rotateY(value)
-              //     .get();
-              // }),
             }}
           >
             <Coin
               radius={COIN_RADIUS}
               depth={COIN_DEPTH}
-              // className="pointer-events-none touch-none"
+              // className="text-[var(--current-face-color)]"
             />
           </animated.div>
         </animated.div>
@@ -697,37 +525,52 @@ const App = () => {
           <div className="absolute w-0.5 h-5 bg-black/40" />
           <div className="absolute w-5 h-0.5 bg-black/40" />
         </div> */}
-      </animated.div>
+      </div>
 
-      <div className="fixed mx-auto max-w-3xl justify-between right-0 items-end bottom-0 flex gap-5 left-0 w-full select-none px-10 pb-10">
-        <HistoryButton />
+      <div className="fixed mx-auto button-group pointer-events-none max-w-3xl justify-between m-auto right-0 top-0 bottom-0 flex flex-col left-0 w-full select-none p-10">
+        <ToggleAudioButton className="pointer-events-auto self-end" />
 
-        <div className="flex items-end flex-col gap-5">
-          <div className="button-group flex-col items-end">
-            {/* <div className="button-group">
-            </div> */}
-            <Button>
-              <ThrowCoin className="size-6" />
+        <div className="flex justify-between items-end pointer-events-none">
+          <HistoryButton className="pointer-events-auto" />
+
+          <div className="flex button-group [&>*]:pointer-events-auto items-end flex-col">
+            <Button
+              disabled={
+                appState === APP_STATE.THROW || appState === APP_STATE.RESTART
+              }
+              onClick={handleActionButtonClick}
+              className={clsx(
+                appState === APP_STATE.CHOICE && "text-[--current-face-color]"
+              )}
+            >
+              {appState !== APP_STATE.OUTCOME && (
+                <ThrowCoin className="size-6" />
+              )}
+              {appState === APP_STATE.OUTCOME && <Refresh className="size-6" />}
             </Button>
 
             <div className="button-group">
-              <Button>
+              <Button
+                disabled={appState !== APP_STATE.CHOICE}
+                onClick={turnCoinLeft}
+              >
                 <ChevronLeft className="size-6" />
               </Button>
 
-              <Button>
+              <Button
+                disabled={appState !== APP_STATE.CHOICE}
+                onClick={turnCoinRight}
+              >
                 <ChevronRight className="size-6" />
               </Button>
             </div>
 
-            <Button>
-              <Sliders className="size-6" />
-            </Button>
+            {/* <Button>
+            <Sliders className="size-6" />
+          </Button> */}
           </div>
         </div>
-        {/* <div className="h-14 border-2 border-black flex-1 bg-white shadow-[4px_4px_0] shadow-black"></div> */}
       </div>
-      {/* <HistoryList className="fixed bottom-0 left-0 right-0 w-full select-none flex-shrink-0 pt-1 px-8 pb-8 pr-[calc(50vw-16px)]" /> */}
     </main>
   );
 };

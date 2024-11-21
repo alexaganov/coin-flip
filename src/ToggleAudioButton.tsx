@@ -1,10 +1,8 @@
 import clsx from "clsx";
-import { SpeakerWave } from "./components/icons/SpeakerWave";
-import { SpeakerXMark } from "./components/icons/SpeakerXMark";
 import { useAppStore } from "./store";
 import Button from "./components/Button";
-import { VolumeX } from "./components/icons/VolumeX";
 import { VolumeFull } from "./components/icons/VolumeFull";
+import { VolumeX } from "./components/icons/VolumeX";
 
 export const ToggleAudioButton = ({ className }: { className?: string }) => {
   const isAudioMuted = useAppStore((state) => state.isAudioMuted);
@@ -18,7 +16,11 @@ export const ToggleAudioButton = ({ className }: { className?: string }) => {
       className={clsx(
         // "size-10 flex items-center transition-all justify-center",
         // isAudioMuted ? "invert-[40%]" : "invert-[80%]",
-        className
+        className,
+        {
+          "text-gray-400": isAudioMuted,
+        }
+        // isAudioMuted ? "btn-muted" : "btn-active"
       )}
     >
       <Icon className="size-6" />

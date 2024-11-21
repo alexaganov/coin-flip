@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 export const useWindowInnerSize = () => {
   const [windowInnerSize, setWindowInnerSize] = useState({

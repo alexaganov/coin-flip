@@ -1,6 +1,8 @@
 import clsx from "clsx";
 import { CircularText } from "./CircularText";
 import CircularSurface from "./CircularSurface";
+import { Moon } from "./icons/Moon";
+import { Sun } from "./icons/Sun";
 
 export const Coin = ({
   radius,
@@ -22,7 +24,7 @@ export const Coin = ({
 
   return (
     <div
-      className={clsx("absolute flex-center text-2xl", className)}
+      className={clsx("absolute flex-center text-3xl", className)}
       style={{
         transformStyle: "preserve-3d",
         width: size,
@@ -48,7 +50,7 @@ export const Coin = ({
           }}
           className={clsx("absolute size-full", partClassName)}
         />
-        <div className="absolute">Head</div>
+        <Moon className="absolute size-16" />
         <CircularText
           className="animate-[spin_60s_linear_infinite]"
           radius={radius}
@@ -77,7 +79,7 @@ export const Coin = ({
           }}
           className={clsx("absolute size-full", partClassName)}
         />
-        <div className="absolute">Tail</div>
+        <Sun className="absolute size-16" />
         <CircularText
           className="animate-[spin_60s_linear_infinite]"
           radius={radius}
@@ -91,15 +93,24 @@ export const Coin = ({
       <CircularSurface
         radius={radius}
         depth={depth}
-        className="absolute size-full text-black flex-center"
+        className="absolute size-full text-current flex-center"
         segmentClassName={clsx(
-          "border-y-[3px] border-b-[var(--coin-head-color)] border-t-[var(--coin-tail-color)] py-0.5",
+          "py-0.5",
+          "border-y-4",
+          // "border-current",
+          "border-b-[var(--coin-head-color)] border-t-[var(--coin-tail-color)]",
           partClassName
         )}
         totalSegments={40}
         render={() => {
           return (
-            <div className="h-full w-0.5 bg-gradient-to-b from-[var(--coin-tail-color)] to-[var(--coin-head-color)] " />
+            <div
+              className={clsx(
+                "h-full w-0.5",
+                // "bg-current",
+                "bg-black"
+              )}
+            />
           );
         }}
       />

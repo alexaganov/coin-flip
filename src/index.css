@@ -13,6 +13,12 @@
     --coin-head-color: #0000ff;
     --coin-tail-color: #ff0000;
     --bg-primary-color: #F1F1F1;
+
+    --accent-primary-color: #fcee0c;
+
+    --surfact-primary-color: #fff;
+    --contrast-primary-color: #000;
+
     /* --bg-primary-color: #e3ff41; */
     /* --env-grid-color: #e3ff41; */
   }
