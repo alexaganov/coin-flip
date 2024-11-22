@@ -432,146 +432,155 @@ const App = () => {
   };
 
   return (
-    <main
-      style={{
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
-        "--current-face-color": `var(${
-          currentChoice === CHOICE.HEAD
-            ? "--coin-head-color"
-            : "--coin-tail-color"
-        })`,
-        "--opposite-face-color": `var(${
-          currentChoice === CHOICE.HEAD
-            ? "--coin-tail-color"
-            : "--coin-head-color"
-        })`,
-      }}
-      className="relative flex flex-col h-full"
-    >
-      <div
-        {...containerBind()}
+    <>
+      <h1 className="sr-only">
+        Experience the Best 3D Coin Flipping App Online
+      </h1>
+
+      <main
         style={{
-          perspective: PERSPECTIVE,
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          //@ts-ignore
+          "--current-face-color": `var(${
+            currentChoice === CHOICE.HEAD
+              ? "--coin-head-color"
+              : "--coin-tail-color"
+          })`,
+          "--opposite-face-color": `var(${
+            currentChoice === CHOICE.HEAD
+              ? "--coin-tail-color"
+              : "--coin-head-color"
+          })`,
         }}
-        className="relative select-none touch-none flex overflow-hidden items-center justify-center h-full"
+        className="relative flex flex-col h-full"
       >
-        <animated.div
-          className="absolute w-full flex items-center justify-center h-full"
+        <div
+          {...containerBind()}
           style={{
-            transformOrigin: `center center 0`,
-            z: cameraZ.to((value) => value - CAMERA_INITIAL_POSITION_Z),
-            rotateY: cameraRotateY,
-            transform: positionY.to((value) => {
-              const distanceFromInitialToFloor =
-                COIN_INITIAL_THROW_POSITION_Y - COIN_FLOOR_POSITION_Y;
-              const currentDistanceFromInitialToFloor = Math.max(
-                COIN_INITIAL_THROW_POSITION_Y - value,
-                0
-              );
-
-              const currentDistanceProgress =
-                currentDistanceFromInitialToFloor / distanceFromInitialToFloor;
-              const cameraTranslateZ =
-                currentDistanceProgress * Math.abs(COIN_INITIAL_POSITION_Z);
-
-              // const cameraTranslateY = currentDistanceProgress * 250;
-              // // TODO: figure out formula to calc angle
-              // const cameraRotateZ = currentDistanceProgress * 20.65;
-
-              const rotateX = radToDeg(
-                Math.atan2(
-                  value + (currentDistanceProgress * COIN_DEPTH) / 2,
-                  -COIN_INITIAL_POSITION_Z
-                )
-              );
-
-              return styleTransform()
-                .translate3d({
-                  z: cameraTranslateZ,
-                })
-                .rotateX(rotateX)
-                .get();
-            }),
-            willChange: "transform",
-            transformStyle: "preserve-3d",
+            perspective: PERSPECTIVE,
           }}
+          className="relative select-none touch-none flex overflow-hidden items-center justify-center h-full"
         >
-          <Environment floorY={300} floorSize={500} perspective={PERSPECTIVE} />
-
           <animated.div
-            id="coin"
-            className={clsx(
-              "absolute touch-none flex-center rounded-full transition-colors"
-            )}
+            className="absolute w-full flex items-center justify-center h-full"
             style={{
-              transformStyle: "preserve-3d",
-              z: COIN_INITIAL_POSITION_Z,
-              y: positionY.to((y) => y * -1),
+              transformOrigin: `center center 0`,
+              z: cameraZ.to((value) => value - CAMERA_INITIAL_POSITION_Z),
+              rotateY: cameraRotateY,
+              transform: positionY.to((value) => {
+                const distanceFromInitialToFloor =
+                  COIN_INITIAL_THROW_POSITION_Y - COIN_FLOOR_POSITION_Y;
+                const currentDistanceFromInitialToFloor = Math.max(
+                  COIN_INITIAL_THROW_POSITION_Y - value,
+                  0
+                );
+
+                const currentDistanceProgress =
+                  currentDistanceFromInitialToFloor /
+                  distanceFromInitialToFloor;
+                const cameraTranslateZ =
+                  currentDistanceProgress * Math.abs(COIN_INITIAL_POSITION_Z);
+
+                // const cameraTranslateY = currentDistanceProgress * 250;
+                // // TODO: figure out formula to calc angle
+                // const cameraRotateZ = currentDistanceProgress * 20.65;
+
+                const rotateX = radToDeg(
+                  Math.atan2(
+                    value + (currentDistanceProgress * COIN_DEPTH) / 2,
+                    -COIN_INITIAL_POSITION_Z
+                  )
+                );
+
+                return styleTransform()
+                  .translate3d({
+                    z: cameraTranslateZ,
+                  })
+                  .rotateX(rotateX)
+                  .get();
+              }),
               willChange: "transform",
-              rotateX: rotationV,
-              rotateY: rotationH,
+              transformStyle: "preserve-3d",
             }}
           >
-            <Coin
-              radius={COIN_RADIUS}
-              depth={COIN_DEPTH}
-              // className="text-[var(--current-face-color)]"
-            />
-          </animated.div>
-        </animated.div>
+            <Environment perspective={PERSPECTIVE} />
 
-        {/* <div className="absolute size-full flex justify-center items-center">
+            <animated.div
+              id="coin"
+              className={clsx(
+                "absolute touch-none flex-center rounded-full transition-colors"
+              )}
+              style={{
+                transformStyle: "preserve-3d",
+                z: COIN_INITIAL_POSITION_Z,
+                y: positionY.to((y) => y * -1),
+                willChange: "transform",
+                rotateX: rotationV,
+                rotateY: rotationH,
+              }}
+            >
+              <Coin
+                radius={COIN_RADIUS}
+                depth={COIN_DEPTH}
+                // className="text-[var(--current-face-color)]"
+              />
+            </animated.div>
+          </animated.div>
+
+          {/* <div className="absolute size-full flex justify-center items-center">
           <div className="absolute w-0.5 h-5 bg-black/40" />
           <div className="absolute w-5 h-0.5 bg-black/40" />
         </div> */}
-      </div>
+        </div>
 
-      <div className="fixed mx-auto button-group pointer-events-none max-w-3xl justify-between m-auto right-0 top-0 bottom-0 flex flex-col left-0 w-full select-none p-10">
-        <ToggleAudioButton className="pointer-events-auto self-end" />
+        <div className="fixed mx-auto button-group pointer-events-none max-w-3xl justify-between m-auto right-0 top-0 bottom-0 flex flex-col left-0 w-full select-none p-10">
+          <ToggleAudioButton className="pointer-events-auto self-end" />
 
-        <div className="flex justify-between items-end pointer-events-none">
-          <HistoryButton className="pointer-events-auto" />
+          <div className="flex justify-between items-end pointer-events-none">
+            <HistoryButton className="pointer-events-auto" />
 
-          <div className="flex button-group [&>*]:pointer-events-auto items-end flex-col">
-            <Button
-              disabled={
-                appState === APP_STATE.THROW || appState === APP_STATE.RESTART
-              }
-              onClick={handleActionButtonClick}
-              className={clsx(
-                appState === APP_STATE.CHOICE && "text-[--current-face-color]"
-              )}
-            >
-              {appState !== APP_STATE.OUTCOME && (
-                <ThrowCoin className="size-6" />
-              )}
-              {appState === APP_STATE.OUTCOME && <Refresh className="size-6" />}
-            </Button>
-
-            <div className="button-group">
+            <div className="flex button-group gap-3 [&>*]:pointer-events-auto items-end flex-col">
               <Button
-                disabled={appState !== APP_STATE.CHOICE}
-                onClick={turnCoinLeft}
+                disabled={
+                  appState === APP_STATE.THROW || appState === APP_STATE.RESTART
+                }
+                onClick={handleActionButtonClick}
+                className={clsx(
+                  appState === APP_STATE.CHOICE && "text-[--current-face-color]"
+                )}
               >
-                <ChevronLeft className="size-6" />
+                {appState !== APP_STATE.OUTCOME && (
+                  <ThrowCoin className="size-6" />
+                )}
+                {appState === APP_STATE.OUTCOME && (
+                  <Refresh className="size-6" />
+                )}
               </Button>
 
-              <Button
-                disabled={appState !== APP_STATE.CHOICE}
-                onClick={turnCoinRight}
-              >
-                <ChevronRight className="size-6" />
-              </Button>
-            </div>
+              <div className="button-group">
+                <Button
+                  disabled={appState !== APP_STATE.CHOICE}
+                  onClick={turnCoinLeft}
+                >
+                  <ChevronLeft className="size-6" />
+                </Button>
 
-            {/* <Button>
+                <Button
+                  disabled={appState !== APP_STATE.CHOICE}
+                  onClick={turnCoinRight}
+                >
+                  <ChevronRight className="size-6" />
+                </Button>
+              </div>
+
+              {/* <Button>
             <Sliders className="size-6" />
           </Button> */}
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 };
 

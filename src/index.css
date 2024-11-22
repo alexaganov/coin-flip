@@ -12,11 +12,12 @@
      /* #8414f5 */
     --coin-head-color: #0000ff;
     --coin-tail-color: #ff0000;
-    --bg-primary-color: #F1F1F1;
+    /* --bg-primary-color: #FAF4F0; */
+    --bg-primary-color: #dfdfdf;
 
     --accent-primary-color: #fcee0c;
 
-    --surfact-primary-color: #fff;
+    --surface-primary-color: #fff;
     --contrast-primary-color: #000;
 
     /* --bg-primary-color: #e3ff41; */

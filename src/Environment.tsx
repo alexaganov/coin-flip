@@ -5,8 +5,6 @@ import { ComponentPropsWithoutRef } from "react";
 
 interface EnvironmentProps extends ComponentPropsWithoutRef<"div"> {
   perspective: number;
-  floorSize: number;
-  floorY: number;
 }
 
 export const Environment = ({

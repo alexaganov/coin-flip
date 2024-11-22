@@ -24,6 +24,14 @@ const config: Config = {
   plugins: [
     plugin(({ matchUtilities, theme, addComponents, addUtilities }) => {
       addComponents({
+        ".popover-content": {
+          border: "2px solid #000",
+          boxShadow: "4px 4px 0 #000",
+          backgroundColor: "#fff",
+        },
+      });
+
+      addComponents({
         ".btn": {
           "--btn-contrast-color": "#000",
           // '--btn-contrast-muted-color': "#777",
@@ -31,6 +39,8 @@ const config: Config = {
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
+          // TODO: add custom focus
+          outline: "none",
 
           "&:disabled, &-disabled, &-muted": {
             "--btn-contrast-color": "#777",

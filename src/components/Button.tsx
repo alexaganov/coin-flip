@@ -1,18 +1,26 @@
 import clsx from "clsx";
-import { ComponentPropsWithoutRef } from "react";
+import { ComponentPropsWithoutRef, forwardRef, Ref } from "react";
 
 type ButtonProps = ComponentPropsWithoutRef<"button"> & {
   contentClassName?: string;
 };
 
-const Button = ({
-  className,
-  contentClassName: innerClassName,
-  children,
-  ...props
-}: ButtonProps) => {
+const Button = (
+  {
+    className,
+    contentClassName: innerClassName,
+    children,
+    ...props
+  }: ButtonProps,
+  ref: Ref<HTMLButtonElement>
+) => {
   return (
-    <button type="button" className={clsx("btn", className)} {...props}>
+    <button
+      ref={ref}
+      type="button"
+      className={clsx("btn", className)}
+      {...props}
+    >
       <div className={clsx("btn-content", innerClassName)}>{children}</div>
 
       <div className="btn-shadow" />
@@ -20,4 +28,4 @@ const Button = ({
   );
 };
 
-export default Button;
+export default forwardRef(Button);
