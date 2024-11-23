@@ -18,7 +18,7 @@ import {
 } from "@react-three/drei";
 
 import { useAppStore } from "./store";
-import { APP_STATE, CHOICE, ChoiceType } from "./type";
+import { APP_STATE, COIN_FACE, CoinFace } from "./type";
 import { degToRad, lerp, radToDeg } from "three/src/math/MathUtils.js";
 import { roundToDecimals } from "./utils/number";
 
@@ -47,7 +47,7 @@ const getRandomBoolean = () => {
 };
 
 const getRandomChoice = () => {
-  return getRandomBoolean() ? CHOICE.HEAD : CHOICE.TAIL;
+  return getRandomBoolean() ? COIN_FACE.HEAD : COIN_FACE.TAIL;
 };
 
 const delay = (timeout: number) => {
@@ -93,7 +93,7 @@ const TAIL_INITIAL_ROTATION: [number, number, number] = [
 ];
 
 const getChoiceByZRotation = (z: number) => {
-  return z % FULL_ROTATION === 0 ? CHOICE.HEAD : CHOICE.TAIL;
+  return z % FULL_ROTATION === 0 ? COIN_FACE.HEAD : COIN_FACE.TAIL;
 };
 
 const screenToWordPosition = ({
@@ -241,7 +241,7 @@ export const Coin = ({
     restart();
 
     const newInitialRotation: [number, number, number] =
-      currentOutcome === CHOICE.HEAD
+      currentOutcome === COIN_FACE.HEAD
         ? [...HEAD_INITIAL_ROTATION]
         : [...TAIL_INITIAL_ROTATION];
 
@@ -253,7 +253,7 @@ export const Coin = ({
   }, [api, currentOutcome, restart]);
 
   const applyOutcomeState = useCallback(
-    (outcome: ChoiceType) => {
+    (outcome: CoinFace) => {
       setCurrentOutcome(outcome);
       setAppState(APP_STATE.OUTCOME);
     },
@@ -382,8 +382,8 @@ export const Coin = ({
         const newOutcome = getRandomChoice();
 
         if (
-          (newOutcome === CHOICE.TAIL && !isCurrentTail) ||
-          (newOutcome === CHOICE.HEAD && isCurrentTail)
+          (newOutcome === COIN_FACE.TAIL && !isCurrentTail) ||
+          (newOutcome === COIN_FACE.HEAD && isCurrentTail)
         ) {
           rotateXTillFace -= NEXT_SIDE_ROTATION;
         } else {

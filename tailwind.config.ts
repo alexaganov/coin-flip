@@ -18,6 +18,14 @@ const config: Config = {
           "0%": { backgroundPosition: "0 0" },
           "100%": { backgroundPosition: "-100% 0" },
         },
+        "translate-b-full": {
+          "95%": {
+            transform: `translateY(0%)`,
+          },
+          "100%": {
+            transform: `translateY(100%)`,
+          },
+        },
       },
     },
   },
@@ -34,25 +42,24 @@ const config: Config = {
       addComponents({
         ".btn": {
           "--btn-contrast-color": "#000",
-          // '--btn-contrast-muted-color': "#777",
+          "--btn-shadow-offset": "0.25rem",
+          "--btn-active-shadow-shift-ratio": "0.5",
+          "--btn-active-shift":
+            "calc(var(--btn-shadow-offset) * var(--btn-active-shadow-shift-ratio))",
+
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
           // TODO: add custom focus
           outline: "none",
+          // prevents issue when translations causing shadow
+          // element appear on top of all elements
+          transform: "translateZ(0)",
 
           "&:disabled, &-disabled, &-muted": {
             "--btn-contrast-color": "#777",
             color: "var(--btn-contrast-color)",
-          },
-
-          // "&:disabled &-shadow, &-disabled &-shadow": {
-          //   backgroundColor: "#777",
-          // },
-
-          "&:disabled &-content, &-disabled &-content": {
-            transform: `translate3d(0.125rem, 0.125rem, 0)`,
           },
 
           "&-content": {
@@ -65,12 +72,29 @@ const config: Config = {
             minWidth: "3.75rem",
             minHeight: "3.75rem",
             border: "2px solid var(--btn-contrast-color)",
-            transition: "all 0.1s ease-out",
+            transition: "all 0.1s ease-in-out",
             background: "#fff",
           },
 
-          "&:active &-content, &-active &-content": {
-            transform: `translate3d(0.125rem, 0.125rem, 0)`,
+          [[
+            "&:active &-content, &-active &-content",
+            "&:disabled &-content, &-disabled &-content",
+          ].join(",")]: {
+            transform: `translate3d(var(--btn-active-shift), var(--btn-active-shift), 0)`,
+          },
+
+          [[
+            "&:active &-shadow, &-active &-shadow",
+            "&:disabled &-shadow, &-disabled &-shadow",
+          ].join(",")]: {
+            "&:after": {
+              transform:
+                "scale(calc(1 - var(--btn-active-shadow-shift-ratio)))",
+            },
+            "&:before": {
+              transform:
+                "scale(calc(1 - var(--btn-active-shadow-shift-ratio)))",
+            },
           },
 
           "&-shadow": {
@@ -78,8 +102,98 @@ const config: Config = {
             width: "100%",
             height: "100%",
             backgroundColor: "var(--btn-contrast-color)",
-            transform: `translate3d(0.25rem, 0.25rem, 0)`,
+            left: "var(--btn-shadow-offset)",
+            top: "var(--btn-shadow-offset)",
             zIndex: "-1",
+
+            "&:after": {
+              content: "''",
+              position: "absolute",
+              transformOrigin: "right bottom",
+              top: "calc(var(--btn-shadow-offset) * -1)",
+              right: "0",
+              width: "var(--btn-shadow-offset)",
+              height: "var(--btn-shadow-offset)",
+              // prevents issues when on io transition is not animated
+              transform: "translateZ(0)",
+              backgroundImage:
+                "linear-gradient(to top right, var(--btn-contrast-color) 0%, var(--btn-contrast-color) 50%, transparent 50%, transparent 100%)",
+              transition: "all 0.1s ease-in-out",
+            },
+
+            "&:before": {
+              content: "''",
+              position: "absolute",
+              bottom: "0",
+              left: "calc(var(--btn-shadow-offset) * -1)",
+              width: "var(--btn-shadow-offset)",
+              height: "var(--btn-shadow-offset)",
+              // prevents issues when on io transition is not animated
+              transform: "translateZ(0)",
+              backgroundImage:
+                "linear-gradient(to bottom left, var(--btn-contrast-color) 0%, var(--btn-contrast-color) 50%, transparent 50%, transparent 100%)",
+              transition: "all 0.1s ease-in-out",
+              transformOrigin: "right bottom",
+            },
+          },
+        },
+      });
+
+      addComponents({
+        ".neo-brut-card": {
+          "--neo-brut-border-width": "2px",
+
+          position: "relative",
+          border: "var(--neo-brut-border-width) solid #000",
+          backgroundColor: "#fff",
+        },
+      });
+
+      addComponents({
+        ".neo-brut-shadow": {
+          "--neo-brut-shadow-color": "#000",
+          "--neo-brut-shadow-offset": "0.25rem",
+
+          margin: "calc(var(--neo-brut-border-width, 0) * -1)",
+          top: "0",
+          left: "0",
+          bottom: "0",
+          right: "0",
+          position: "absolute",
+          // width: "100%",
+          // height: "100%",
+          backgroundColor: "var(--neo-brut-shadow-color)",
+          transform: `translate3d(var(--neo-brut-shadow-offset), var(--neo-brut-shadow-offset), 0)`,
+          zIndex: "-1",
+
+          "&:after": {
+            content: "''",
+            position: "absolute",
+            transformOrigin: "right bottom",
+            top: "calc(var(--neo-brut-shadow-offset) * -1)",
+            right: "0",
+            width: "var(--neo-brut-shadow-offset)",
+            height: "var(--neo-brut-shadow-offset)",
+            // prevents issues when on io transition is not animated
+            transform: "translateZ(0)",
+            backgroundImage:
+              "linear-gradient(to top right, var(--neo-brut-shadow-color) 0%, var(--neo-brut-shadow-color) 50%, transparent 50%, transparent 100%)",
+            transition: "all 0.1s ease-in-out",
+          },
+
+          "&:before": {
+            content: "''",
+            position: "absolute",
+            bottom: "0",
+            left: "calc(var(--neo-brut-shadow-offset) * -1)",
+            width: "var(--neo-brut-shadow-offset)",
+            height: "var(--neo-brut-shadow-offset)",
+            // prevents issues when on io transition is not animated
+            transform: "translateZ(0)",
+            backgroundImage:
+              "linear-gradient(to bottom left, var(--neo-brut-shadow-color) 0%, var(--neo-brut-shadow-color) 50%, transparent 50%, transparent 100%)",
+            transition: "all 0.1s ease-in-out",
+            transformOrigin: "right bottom",
           },
         },
       });

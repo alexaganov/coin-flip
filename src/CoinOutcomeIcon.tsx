@@ -1,12 +1,12 @@
 import React from "react";
-import { CHOICE, ChoiceType } from "./type";
+import { COIN_FACE, CoinFace } from "./type";
 import { CoinFaceUp } from "./components/icons/CoinFaceUp";
 import { CoinFaceDown } from "./components/icons/CoinFaceDown";
 import clsx from "clsx";
 
 interface CoinOutcomeIconProps {
-  choice: ChoiceType;
-  outcome: ChoiceType;
+  choice: CoinFace;
+  outcome: CoinFace;
   className?: string;
 }
 
@@ -18,7 +18,7 @@ const CoinOutcomeIcon = ({
   const Icon = choice === outcome ? CoinFaceUp : CoinFaceDown;
 
   const colorClassName =
-    outcome === CHOICE.HEAD
+    outcome === COIN_FACE.HEAD
       ? "text-[var(--coin-head-color)]"
       : "text-[var(--coin-tail-color)]";
 

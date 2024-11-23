@@ -72,10 +72,30 @@ export const CircularText = ({
   // });
 
   useLayoutEffect(() => {
-    setTextSize({
-      width: textRef.current!.offsetWidth,
-      height: textRef.current!.offsetHeight,
+    if (!textRef.current) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      // console.log({
+      //   entry,
+      //   offsetWidth: textRef.current?.offsetWidth,
+      //   offsetHeight: textRef.current?.offsetHeight,
+      // });
+
+      setTextSize({
+        width: entry.contentBoxSize[0].inlineSize,
+        height: entry.contentBoxSize[0].blockSize,
+      });
     });
+
+    resizeObserver.observe(textRef.current, {
+      box: "border-box",
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, [text]);
 
   return (
@@ -84,10 +104,7 @@ export const CircularText = ({
         width: size,
         height: size,
       }}
-      className={clsx(
-        "relative whitespace-pre flex items-center justify-center",
-        className
-      )}
+      className={clsx("relative whitespace-pre flex-center", className)}
     >
       <span ref={textRef} className="absolute invisible pointer-events-none">
         {text}

@@ -5,7 +5,7 @@ import { CoinFaceUp } from "./components/icons/CoinFaceUp";
 import clsx from "clsx";
 import { HistoryRecord, useAppStore } from "./store";
 import { useTransition, animated } from "react-spring";
-import { CHOICE } from "./type";
+import { COIN_FACE } from "./type";
 import * as Popover from "@radix-ui/react-popover";
 import CoinOutcomeIcon from "./CoinOutcomeIcon";
 
@@ -32,7 +32,7 @@ const CoinList = ({ items }: { items: HistoryRecord[] }) => {
             key={item.id}
             className={clsx(
               iconClassName,
-              item.outcome === CHOICE.HEAD
+              item.outcome === COIN_FACE.HEAD
                 ? "text-[var(--coin-head-color)]"
                 : "text-[var(--coin-tail-color)]"
             )}
@@ -58,7 +58,7 @@ const groupByStreaks = (items: HistoryRecord[]) => {
       if (streak.length) {
         groups.push({
           id: streak[0].id,
-          items: streak,
+          items: streak.reverse(),
         });
       }
 
@@ -158,12 +158,13 @@ const HistoryButton = ({ className }: { className?: string }) => {
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          className="px-[2.4375rem] pt-10 pointer-events-none outline-none justify-end flex flex-col max-w-[calc(768px-4.375rem)] h-[var(--radix-popper-available-height)]  w-[calc(var(--radix-popper-available-width)-4.375rem)]"
-          sideOffset={10}
+          className="px-[2.4375rem] pt-[2.4375rem] pointer-events-none outline-none justify-end flex flex-col max-w-[calc(768px-4.375rem)] h-[var(--radix-popper-available-height)]  w-[calc(var(--radix-popper-available-width)-4.375rem)]"
+          sideOffset={12}
           align="start"
           alignOffset={-39}
         >
-          <div className="popover-content pointer-events-auto flex max-h-52 flex-col flex-grow">
+          <div className="neo-brut-card pointer-events-auto flex max-h-52 flex-col flex-grow">
+            <div className="neo-brut-shadow" />
             <header className="px-4 py-2 border-b-2 border-black">
               <h2 className="text-xl">History</h2>
             </header>
@@ -189,24 +190,27 @@ const HistoryButton = ({ className }: { className?: string }) => {
                       {!isBadOutcome && (
                         <div className=" overflow-hidden flex flex-col items-center justify-end">
                           {group.items.length > 1 && (
-                            <span className="text-sm flex-shrink-0">
+                            <span className="text-sm flex flex-shrink-0">
                               +{group.items.length}
                             </span>
                           )}
-                          {group.items.map((item, i) => {
-                            return (
-                              <span
-                                style={{ zIndex: group.items.length - i }}
-                                className="flex-shrink basis-4 flex-center last:mb-2 min-h-0"
-                              >
-                                <CoinOutcomeIcon
-                                  className="size-6"
-                                  choice={item.choice}
-                                  outcome={item.outcome}
-                                />
-                              </span>
-                            );
-                          })}
+                          <div className="flex flex-col items-center justify-end min-h-6">
+                            {group.items.map((item, i) => {
+                              return (
+                                <span
+                                  key={item.id}
+                                  style={{ zIndex: group.items.length - i }}
+                                  className="flex-shrink basis-4 flex justify-center first:flex-shrink-0 items-end min-h-0"
+                                >
+                                  <CoinOutcomeIcon
+                                    className="size-6"
+                                    choice={item.choice}
+                                    outcome={item.outcome}
+                                  />
+                                </span>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
 

@@ -3,6 +3,163 @@ import { CircularText } from "./CircularText";
 import CircularSurface from "./CircularSurface";
 import { Moon } from "./icons/Moon";
 import { Sun } from "./icons/Sun";
+import LightSweepEffect from "./LightSweepEffect";
+import { ComponentPropsWithoutRef, ComponentType } from "react";
+import { useAppStore } from "../store";
+
+interface CoinFaceProps extends ComponentPropsWithoutRef<"div"> {
+  radius: number;
+  label?: string;
+}
+
+const CoinFace = ({
+  radius,
+  label = "HEAD",
+  className,
+  children,
+  ...props
+}: CoinFaceProps) => {
+  return (
+    <div
+      className={clsx(
+        "absolute size-full overflow-hidden rounded-full border-4 border-current flex-center",
+        className
+      )}
+      {...props}
+    >
+      <div
+        style={{
+          opacity: 0.3,
+          backgroundImage:
+            "radial-gradient(circle at center, transparent 30%, currentcolor 100%)",
+        }}
+        className={clsx("absolute size-full")}
+      />
+
+      {children}
+
+      <CircularText
+        className="animate-[spin_60s_linear_infinite]"
+        radius={radius}
+        text={label}
+      />
+
+      <LightSweepEffect />
+      {/* <div className="absolute w-full h-px bg-green-500" />
+        <div className="absolute w-px h-full bg-red-500" /> */}
+    </div>
+  );
+};
+
+export const DEFAULT_COIN_HEAD_LABEL = "HEAD   *   ";
+export const DEFAULT_COIN_HEAD_ICON = "!moon";
+
+const DEFAULT_ICONS = {
+  moon: Moon,
+  sun: Sun,
+};
+
+const getDefaultIcon = (
+  icon: string
+): ComponentType<{ className?: string }> | null => {
+  if (!icon.startsWith("!")) {
+    return null;
+  }
+
+  const iconName = icon.slice(1);
+
+  return iconName in DEFAULT_ICONS
+    ? DEFAULT_ICONS[iconName as keyof typeof DEFAULT_ICONS]
+    : null;
+};
+
+const CoinFaceIcon = ({
+  icon,
+  className,
+}: {
+  icon: string;
+  className?: string;
+}) => {
+  const DefaultIcon = getDefaultIcon(icon);
+
+  if (DefaultIcon) {
+    return <DefaultIcon className={clsx("size-16", className)} />;
+  }
+
+  // return (
+  //   <div className={clsx(className, "size-max")}>
+  //     <svg
+  //       viewBox="0 0 100 100"
+  //       // preserveAspectRatio="xMinYMid meet"
+  //       className={clsx("w-full h-full")}
+  //     >
+  //       <text x="50" y="50" alignmentBaseline="middle" textAnchor="middle">
+  //         {icon}
+  //       </text>
+  //     </svg>
+  //   </div>
+  // );
+
+  return (
+    <div
+      className={clsx(
+        "size-2/3 flex-center rounded-full overflow-hidden",
+        className
+      )}
+    >
+      <p className="break-words text-center leading-none text-7xl w-full rounded-full">
+        {icon}
+      </p>
+    </div>
+    // <svg viewBox="0 0 100 100" className={clsx("size-full", className)}>
+    //   <foreignObject className="size-full">
+    //   </foreignObject>
+    // </svg>
+  );
+};
+
+const CoinHead = ({
+  className,
+  ...props
+}: Omit<CoinFaceProps, "label" | "icon">) => {
+  const { label, icon } = useAppStore((state) => state.coinConfig.head);
+
+  return (
+    <CoinFace
+      className={clsx("text-[var(--coin-head-color)]", className)}
+      label={label || DEFAULT_COIN_HEAD_LABEL}
+      {...props}
+    >
+      <CoinFaceIcon
+        className="absolute"
+        icon={icon || DEFAULT_COIN_HEAD_ICON}
+      />
+    </CoinFace>
+  );
+};
+
+export const DEFAULT_COIN_TAIL_LABEL = "TAIL   *   ";
+export const DEFAULT_COIN_TAIL_ICON = "!sun";
+
+const CoinTail = ({
+  className,
+  ...props
+}: Omit<CoinFaceProps, "label" | "icon">) => {
+  const { label, icon } = useAppStore((state) => state.coinConfig.tail);
+
+  return (
+    <CoinFace
+      className={clsx("text-[var(--coin-tail-color)]", className)}
+      label={label || DEFAULT_COIN_TAIL_LABEL}
+      {...props}
+    >
+      <CoinFaceIcon
+        className="absolute"
+        icon={icon || DEFAULT_COIN_TAIL_ICON}
+      />
+    </CoinFace>
+  );
+};
 
 export const Coin = ({
   radius,
@@ -17,10 +174,7 @@ export const Coin = ({
   const backZ = -depth / 2;
   const size = radius * 2;
 
-  const partClassName = "bg-[--bg-primary-color]";
-
-  const sideClassName =
-    "absolute size-full overflow-hidden rounded-full border-4 border-current flex-center";
+  const bgClassName = "bg-[--bg-primary-color]";
 
   return (
     <div
@@ -31,64 +185,21 @@ export const Coin = ({
         height: size,
       }}
     >
-      <div
-        className={clsx(
-          sideClassName,
-          partClassName,
-          "text-[var(--coin-head-color)]"
-        )}
+      <CoinHead
+        className={clsx(bgClassName)}
+        radius={radius}
         style={{
-          // boxShadow: "inset 0 0 100px currentcolor",
           transform: `translate3d(0, 0, ${frontZ}px)`,
         }}
-      >
-        <div
-          style={{
-            opacity: 0.3,
-            backgroundImage:
-              "radial-gradient(circle at center, transparent 30%, currentcolor 100%)",
-          }}
-          className={clsx("absolute size-full", partClassName)}
-        />
-        <Moon className="absolute size-16" />
-        <CircularText
-          className="animate-[spin_60s_linear_infinite]"
-          radius={radius}
-          text="HEAD  *  "
-        />
+      />
 
-        {/* <div className="absolute w-full h-px bg-green-500" />
-        <div className="absolute w-px h-full bg-red-500" /> */}
-      </div>
-
-      <div
-        className={clsx(
-          sideClassName,
-          partClassName,
-          "text-[var(--coin-tail-color)]"
-        )}
+      <CoinTail
+        className={clsx(bgClassName)}
+        radius={radius}
         style={{
           transform: `translate3d(0, 0, ${backZ}px) rotate3d(0, 1, 0, -180deg)`,
         }}
-      >
-        <div
-          style={{
-            opacity: 0.3,
-            backgroundImage:
-              "radial-gradient(circle at center, transparent 30%, currentcolor 100%)",
-          }}
-          className={clsx("absolute size-full", partClassName)}
-        />
-        <Sun className="absolute size-16" />
-        <CircularText
-          className="animate-[spin_60s_linear_infinite]"
-          radius={radius}
-          text="TAIL  *  "
-        />
-
-        {/* <div className="absolute w-full h-px bg-green-500" />
-        <div className="absolute w-px h-full bg-red-500" /> */}
-      </div>
+      />
 
       <CircularSurface
         radius={radius}
@@ -99,7 +210,7 @@ export const Coin = ({
           "border-y-4",
           // "border-current",
           "border-b-[var(--coin-head-color)] border-t-[var(--coin-tail-color)]",
-          partClassName
+          bgClassName
         )}
         totalSegments={40}
         render={() => {

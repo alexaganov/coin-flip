@@ -1,6 +1,6 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import clsx from "clsx";
-import { APP_STATE, CHOICE } from "./type";
+import { APP_STATE, COIN_FACE } from "./type";
 import { useAppStore } from "./store";
 import { animated, easings, useSpring } from "@react-spring/web";
 import { Coin } from "./components/Coin";
@@ -20,6 +20,7 @@ import { ThrowCoin } from "./components/icons/ThrowCoin";
 import HistoryButton from "./HistoryButton";
 import { Refresh } from "./components/icons/Refresh";
 import { useSoundEffects } from "./SoundEffectsProvider";
+import ConfigureCoinButton from "./ConfigureCoinButton";
 
 const PERSPECTIVE = 1000;
 
@@ -99,7 +100,9 @@ const App = () => {
     }
 
     const nextChoice =
-      roundToMultiple(rotationH, 180) % 360 === 0 ? CHOICE.HEAD : CHOICE.TAIL;
+      roundToMultiple(rotationH, 180) % 360 === 0
+        ? COIN_FACE.HEAD
+        : COIN_FACE.TAIL;
 
     setChoice(nextChoice);
   };
@@ -259,7 +262,7 @@ const App = () => {
           vRotationToLookAtScreen += 180;
         }
 
-        const outcome = newOutcome === tail ? CHOICE.TAIL : CHOICE.HEAD;
+        const outcome = newOutcome === tail ? COIN_FACE.TAIL : COIN_FACE.HEAD;
 
         soundEffects.coinThrow.stop();
         soundEffects.coinFall.play();
@@ -348,7 +351,7 @@ const App = () => {
 
         api.set({
           rotationV: 0,
-          rotationH: currentOutcome === CHOICE.HEAD ? 0 : 180,
+          rotationH: currentOutcome === COIN_FACE.HEAD ? 0 : 180,
           positionY: COIN_INITIAL_THROW_POSITION_Y,
         });
       },
@@ -431,35 +434,65 @@ const App = () => {
     }
   };
 
+  useLayoutEffect(() => {
+    const currentFaceColor =
+      currentChoice === COIN_FACE.HEAD
+        ? "--coin-head-color"
+        : "--coin-tail-color";
+
+    const oppositeFaceColor =
+      currentChoice === COIN_FACE.HEAD
+        ? "--coin-tail-color"
+        : "--coin-head-color";
+
+    document.body.style.setProperty(
+      "--coin-current-face-color",
+      `var(${currentFaceColor})`
+    );
+    document.body.style.setProperty(
+      "--coin-opposite-face-color",
+      `var(${oppositeFaceColor})`
+    );
+  }, [currentChoice]);
+
+  // useLayoutEffect(() => {
+  //   const { visualViewport } = window;
+
+  //   if (!visualViewport) {
+  //     return;
+  //   }
+
+  //   const handleWindowResize = () => {
+  //     document.body.style.setProperty(
+  //       "--visual-viewport-height",
+  //       `${visualViewport.height}px`
+  //     );
+  //     document.body.style.setProperty(
+  //       "--visual-viewport-width",
+  //       `${visualViewport.width}px`
+  //     );
+  //   };
+
+  //   visualViewport.addEventListener("resize", handleWindowResize);
+
+  //   return () => {
+  //     visualViewport.removeEventListener("resize", handleWindowResize);
+  //   };
+  // }, []);
+
   return (
     <>
       <h1 className="sr-only">
         Experience the Best 3D Coin Flipping App Online
       </h1>
 
-      <main
-        style={{
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
-          "--current-face-color": `var(${
-            currentChoice === CHOICE.HEAD
-              ? "--coin-head-color"
-              : "--coin-tail-color"
-          })`,
-          "--opposite-face-color": `var(${
-            currentChoice === CHOICE.HEAD
-              ? "--coin-tail-color"
-              : "--coin-head-color"
-          })`,
-        }}
-        className="relative flex flex-col h-full"
-      >
+      <main className="relative flex flex-col h-full">
         <div
           {...containerBind()}
           style={{
             perspective: PERSPECTIVE,
           }}
-          className="relative select-none touch-none flex overflow-hidden items-center justify-center h-full"
+          className="relative pointer-events-auto select-none touch-none flex overflow-hidden items-center justify-center h-full"
         >
           <animated.div
             className="absolute w-full flex items-center justify-center h-full"
@@ -534,28 +567,37 @@ const App = () => {
         </div>
 
         <div className="fixed mx-auto button-group pointer-events-none max-w-3xl justify-between m-auto right-0 top-0 bottom-0 flex flex-col left-0 w-full select-none p-10">
-          <ToggleAudioButton className="pointer-events-auto self-end" />
+          {/* <div className="self-end flex flex-col button-group [&>*]:pointer-events-auto">
+          </div> */}
+          <ToggleAudioButton className="self-end pointer-events-auto" />
 
           <div className="flex justify-between items-end pointer-events-none">
-            <HistoryButton className="pointer-events-auto" />
+            <div className="flex flex-col items-start [&>*]:pointer-events-auto gap-3">
+              <HistoryButton />
+            </div>
 
-            <div className="flex button-group gap-3 [&>*]:pointer-events-auto items-end flex-col">
-              <Button
-                disabled={
-                  appState === APP_STATE.THROW || appState === APP_STATE.RESTART
-                }
-                onClick={handleActionButtonClick}
-                className={clsx(
-                  appState === APP_STATE.CHOICE && "text-[--current-face-color]"
-                )}
-              >
-                {appState !== APP_STATE.OUTCOME && (
-                  <ThrowCoin className="size-6" />
-                )}
-                {appState === APP_STATE.OUTCOME && (
-                  <Refresh className="size-6" />
-                )}
-              </Button>
+            <div className="flex button-group [&>*]:pointer-events-auto items-end flex-col">
+              <div className="button-group">
+                <ConfigureCoinButton />
+                <Button
+                  disabled={
+                    appState === APP_STATE.THROW ||
+                    appState === APP_STATE.RESTART
+                  }
+                  onClick={handleActionButtonClick}
+                  className={clsx(
+                    appState === APP_STATE.CHOICE &&
+                      "text-[--coin-current-face-color]"
+                  )}
+                >
+                  {appState !== APP_STATE.OUTCOME && (
+                    <ThrowCoin className="size-6" />
+                  )}
+                  {appState === APP_STATE.OUTCOME && (
+                    <Refresh className="size-6" />
+                  )}
+                </Button>
+              </div>
 
               <div className="button-group">
                 <Button
@@ -572,10 +614,6 @@ const App = () => {
                   <ChevronRight className="size-6" />
                 </Button>
               </div>
-
-              {/* <Button>
-            <Sliders className="size-6" />
-          </Button> */}
             </div>
           </div>
         </div>
