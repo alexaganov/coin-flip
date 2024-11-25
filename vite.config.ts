@@ -11,7 +11,21 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        theme_color: "#000",
+        name: "Coin Flip 3D",
+        short_name: "Coin Flip",
+        icons: [
+          {
+            src: "/android-chrome-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "/android-chrome-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+        ],
+        theme_color: "#ffffff",
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3}"],

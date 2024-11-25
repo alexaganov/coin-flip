@@ -6,8 +6,8 @@
 - [x] When coin is on the ground return it on initial position but with current face looking at the camera (right now it's always head as initial position)
 - [ ] Improve environment (right now it's too plain)
 - [ ] Add proper 3d coin model
-- [ ] Add symbols for each side of the 3d coin
-- [ ] Add effects to the 3d coin model (shine, reflection etc.)
+- [x] Add symbols for each side of the 3d coin
+- [x] Add effects to the 3d coin model (shine, reflection etc.)
 - [ ] Add ability to embed via iframe
 - [x] Move camera closer to coin when it's on the ground
 - [ ] Add tutorial to show available controls
@@ -15,10 +15,8 @@
 - [x] Add ability to rotate coin on click
 - [x] Add sound toggle
 - [x] Add tap on bottom of the coin to throw it
-
-**Top Priority**
 - [ ] Refactor to improve readability (too much code in single file)
-- [ ] Make the coin using css because instead of threeJs version because bundle is too big
+- [x] Make the coin using css because instead of threeJs version because bundle is too big
 
 # React + TypeScript + Vite
 
