@@ -11,7 +11,7 @@ import { useCallback, useMemo } from "react";
 import { CoinFace } from "../type";
 import { hasOnlyEmptyStrings } from "../utils/object";
 
-interface IndexSearch {
+export interface IndexSearch {
   config?: string;
 }
 
