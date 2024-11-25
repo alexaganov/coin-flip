@@ -58,8 +58,13 @@ const config: Config = {
           transform: "translateZ(0)",
 
           "&:disabled, &-disabled, &-muted": {
-            "--btn-contrast-color": "#777",
-            color: "var(--btn-contrast-color)",
+            // "--btn-contrast-color": "#777",
+            // background: "#777",
+            // color:
+          },
+
+          "&:where(&:disabled, &-disabled, &-muted) &-content": {
+            backgroundColor: "#ddd",
           },
 
           "&-content": {
@@ -74,6 +79,12 @@ const config: Config = {
             border: "2px solid var(--btn-contrast-color)",
             transition: "all 0.1s ease-in-out",
             background: "#fff",
+          },
+
+          "&-sm :where(&-content)": {
+            minWidth: "2.5rem",
+            minHeight: "2.5rem",
+            padding: "0 0.5rem",
           },
 
           [[

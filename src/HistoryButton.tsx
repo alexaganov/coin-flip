@@ -158,17 +158,45 @@ const HistoryButton = ({ className }: { className?: string }) => {
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          className="px-[2.4375rem] pt-[2.4375rem] pointer-events-none outline-none justify-end flex flex-col max-w-[calc(768px-4.375rem)] h-[var(--radix-popper-available-height)]  w-[calc(var(--radix-popper-available-width)-4.375rem)]"
-          sideOffset={12}
+          className="relative pointer-events-none button-group outline-none justify-end flex flex-col max-w-[calc(560px)] w-[calc(var(--radix-popper-available-width))]"
+          sideOffset={10}
           align="start"
-          alignOffset={-39}
+          side="top"
+          // sideOffset={-60}
+          // onInteractOutside={(event) => {
+          //   event.preventDefault();
+          // }}
+          // onPointerDownOutside={(event) => {
+          //   event.preventDefault();
+          // }}
+          collisionPadding={{
+            top: 60,
+            // top: 37,
+            left: 39,
+            // right padding + two buttons + space
+            right: 39 + 60 + 60 + 10,
+          }}
         >
-          <div className="neo-brut-card pointer-events-auto flex max-h-52 flex-col flex-grow">
-            <div className="neo-brut-shadow" />
-            <header className="px-4 py-2 border-b-2 border-black">
-              <h2 className="text-xl">History</h2>
+          <div className="flex justify-between">
+            <header className={clsx("self-start relative")}>
+              <h2 className={clsx("text-xl neo-brut-card p-1 px-4")}>
+                History
+              </h2>
+
+              <div className="neo-brut-shadow" />
             </header>
-            <div className="overflow-auto flex-[1_1_0]">
+
+            {/* <Popover.Close asChild>
+              <Button className="btn-sm">
+                <Cross className="size-5 text-red-500" />
+              </Button>
+            </Popover.Close> */}
+          </div>
+
+          <div className="relative pointer-events-auto flex h-[7.375rem] flex-col">
+            <div className="neo-brut-shadow" />
+
+            <div className="neo-brut-card overflow-auto flex-[1_1_0]">
               <ul className="flex h-full divide-x divide-dashed divide-gray-300">
                 {groupedByStreaks.map((group, i) => {
                   const isBadOutcome =
@@ -194,7 +222,7 @@ const HistoryButton = ({ className }: { className?: string }) => {
                               +{group.items.length}
                             </span>
                           )}
-                          <div className="flex flex-col items-center justify-end min-h-6">
+                          <div className="flex flex-col items-center justify-end min-h-5 pb-1">
                             {group.items.map((item, i) => {
                               return (
                                 <span
@@ -203,7 +231,7 @@ const HistoryButton = ({ className }: { className?: string }) => {
                                   className="flex-shrink basis-4 flex justify-center first:flex-shrink-0 items-end min-h-0"
                                 >
                                   <CoinOutcomeIcon
-                                    className="size-6"
+                                    className="size-5"
                                     choice={item.choice}
                                     outcome={item.outcome}
                                   />
@@ -214,10 +242,10 @@ const HistoryButton = ({ className }: { className?: string }) => {
                         </div>
                       )}
 
-                      <div className="flex-center aspect-square w-full h-8 flex-shrink-0 border-t border-t-gray-300">
+                      <div className="flex-center aspect-square w-full h-6 flex-shrink-0 border-t border-t-gray-300">
                         {isBadOutcome && (
                           <CoinOutcomeIcon
-                            className="size-6 opacity-50"
+                            className="size-5 opacity-50"
                             choice={group.items[0].choice}
                             outcome={group.items[0].outcome}
                           />

@@ -18,7 +18,7 @@ export const ToggleAudioButton = ({ className }: { className?: string }) => {
         // isAudioMuted ? "invert-[40%]" : "invert-[80%]",
         className,
         {
-          "text-gray-400": isAudioMuted,
+          "btn-muted btn-active": isAudioMuted,
         }
         // isAudioMuted ? "btn-muted" : "btn-active"
       )}
