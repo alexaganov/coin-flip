@@ -13,40 +13,32 @@ import {
   DEFAULT_COIN_TAIL_LABEL,
 } from "./components/Coin";
 import TextField from "./components/TextField";
+import { useRouteSearchCoinConfig } from "./routes";
 
 interface ConfigureCoinButtonProps {
   className?: string;
 }
 
 const ConfigureCoinButton = ({ className }: ConfigureCoinButtonProps) => {
-  const currentFace = useAppStore((state) => state.currentChoice);
-  const coinConfig = useAppStore((state) => state.coinConfig);
-  const updateCoinFaceConfig = useAppStore(
-    (state) => state.updateCoinFaceConfig
-  );
+  const { config: decodedCoinConfig, update: updateCoinFaceConfig } =
+    useRouteSearchCoinConfig();
 
-  const coinFaceConfig = coinConfig[currentFace];
+  const currentFace = useAppStore((state) => state.currentChoice);
+  const coinFaceConfig = decodedCoinConfig[currentFace];
 
   const [open, setOpen] = useState(false);
 
   const TriggerIcon = open ? Cross : Sliders;
 
-  const labelInputProps =
+  const inputProps =
     currentFace === COIN_FACE.HEAD
       ? {
-          placeholder: DEFAULT_COIN_HEAD_LABEL,
+          labelPlaceholder: DEFAULT_COIN_HEAD_LABEL,
+          iconPlaceholder: DEFAULT_COIN_HEAD_ICON,
         }
       : {
-          placeholder: DEFAULT_COIN_TAIL_LABEL,
-        };
-
-  const iconInputProps =
-    currentFace === COIN_FACE.HEAD
-      ? {
-          placeholder: DEFAULT_COIN_HEAD_ICON,
-        }
-      : {
-          placeholder: DEFAULT_COIN_TAIL_ICON,
+          labelPlaceholder: DEFAULT_COIN_TAIL_LABEL,
+          iconPlaceholder: DEFAULT_COIN_TAIL_ICON,
         };
 
   return (
@@ -96,8 +88,8 @@ const ConfigureCoinButton = ({ className }: ConfigureCoinButtonProps) => {
 
               <div className="flex flex-col gap-2.5 p-3 pt-3">
                 <TextField
-                  placeholder={labelInputProps.placeholder}
-                  value={coinFaceConfig.label || ""}
+                  placeholder={inputProps.labelPlaceholder}
+                  value={coinFaceConfig.label}
                   label="LABEL"
                   inputClassName="focus:border-[--coin-current-face-color]"
                   onValueChange={(value) => {
@@ -108,8 +100,8 @@ const ConfigureCoinButton = ({ className }: ConfigureCoinButtonProps) => {
                 />
 
                 <TextField
-                  placeholder={iconInputProps.placeholder}
-                  value={coinFaceConfig.icon || ""}
+                  placeholder={inputProps.iconPlaceholder}
+                  value={coinFaceConfig.icon}
                   label="ICON"
                   inputClassName="focus:border-[--coin-current-face-color]"
                   onValueChange={(value) => {

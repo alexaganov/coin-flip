@@ -24,8 +24,6 @@ import ConfigureCoinButton from "./ConfigureCoinButton";
 
 const PERSPECTIVE = 1000;
 
-// const COIN_RADIUS = 150;
-
 const defaultConfig = {
   tension: 200,
   friction: 16,
@@ -34,10 +32,6 @@ const defaultConfig = {
   // bounce can be 0 which removes wobble effect
   bounce: undefined,
 } as const;
-
-// const CAMERA_INITIAL_POSITION_Y = 0;
-// const COIN_INITIAL_POSITION_Y = -COIN_RADIUS / 2;
-// const COIN_INITIAL_POSITION_Y = -200;
 
 const isFrontSideLookingAtScreen = (
   xRotationInDegrees: number,
@@ -51,8 +45,6 @@ const isFrontSideLookingAtScreen = (
     yRotationInRadians
   );
 
-  // console.log({ zProjection });
-
   return zProjection > 0;
 };
 
@@ -63,27 +55,18 @@ const App = () => {
   const CAMERA_INITIAL_POSITION_Z = 0;
   const COIN_RADIUS = 180;
   const COIN_DEPTH = 20;
-  // Math.min(
-  //   Math.min(windowInnerSize.height, windowInnerSize.width) / 4,
-  //   150
-  // );
-  const COIN_INITIAL_THROW_POSITION_Y = -COIN_RADIUS / 2;
-  // const FLOOR_POSITION_Y = COIN_RADIUS * 2;
 
-  // const COIN_FLOOR_POSITION_Y = -(FLOOR_POSITION_Y - COIN_DEPTH / 2);
+  const COIN_INITIAL_THROW_POSITION_Y = -COIN_RADIUS / 2;
   const COIN_FLOOR_POSITION_Y = -(PERSPECTIVE / 2 - COIN_DEPTH / 2);
   const COIN_INITIAL_POSITION_Z = -PERSPECTIVE / 2;
-  // const COIN_POSITION_Z = -COIN_RADIUS * 2; //-PERSPECTIVE / 2;
 
   const appState = useAppStore((state) => state.appState);
   const setAppState = useAppStore((state) => state.setAppState);
   const restart = useAppStore((state) => state.restart);
 
-  // const choice = useAppStore((state) => state.currentChoice);
-  const currentOutcome = useAppStore((state) => state.currentOutcome);
   const currentChoice = useAppStore((state) => state.currentChoice);
   const setChoice = useAppStore((state) => state.setChoice);
-  const setCurrentOutcome = useAppStore((state) => state.setCurrentOutcome);
+  const applyOutcome = useAppStore((state) => state.applyOutcome);
 
   const handleSpringChangeRef = useRef<
     ((params: { rotationV: number; rotationH: number }) => void) | null
@@ -272,8 +255,7 @@ const App = () => {
           rotationH: roundToMultiple(updatedRotationH, 180),
           rotationV: vRotationToLookAtScreen + 90,
           onResolve: () => {
-            setAppState(APP_STATE.OUTCOME);
-            setCurrentOutcome(outcome);
+            applyOutcome(outcome);
           },
           config: {
             easing: easings.easeInOutBounce,
@@ -351,7 +333,7 @@ const App = () => {
 
         api.set({
           rotationV: 0,
-          rotationH: currentOutcome === COIN_FACE.HEAD ? 0 : 180,
+          rotationH: currentChoice === COIN_FACE.HEAD ? 0 : 180,
           positionY: COIN_INITIAL_THROW_POSITION_Y,
         });
       },
@@ -391,16 +373,18 @@ const App = () => {
             // if (isTapOnCoin) {
             //   return throwCoin();
             // } else
-            if (axis === "x" || tap) {
-              if (tap) {
-                const xProgress = xy[0] / window.innerWidth;
-                const dir = xProgress >= 0.5 ? 1 : -1;
+            if (tap) {
+              const xProgress = xy[0] / window.innerWidth;
+              const dir = xProgress >= 0.5 ? 1 : -1;
 
-                return turnCoinInDirection(dir);
-              } else if (swipe[0] !== 0) {
-                return turnCoinInDirection(swipe[0] as 1 | -1);
-              }
+              return turnCoinInDirection(dir);
+            }
 
+            if (swipe[0] !== 0) {
+              return turnCoinInDirection(swipe[0] as 1 | -1);
+            }
+
+            if (axis === "x") {
               return handleChangeSide(state);
             } else if (axis === "y") {
               return handlePrepareThrow(state);
@@ -454,31 +438,6 @@ const App = () => {
       `var(${oppositeFaceColor})`
     );
   }, [currentChoice]);
-
-  // useLayoutEffect(() => {
-  //   const { visualViewport } = window;
-
-  //   if (!visualViewport) {
-  //     return;
-  //   }
-
-  //   const handleWindowResize = () => {
-  //     document.body.style.setProperty(
-  //       "--visual-viewport-height",
-  //       `${visualViewport.height}px`
-  //     );
-  //     document.body.style.setProperty(
-  //       "--visual-viewport-width",
-  //       `${visualViewport.width}px`
-  //     );
-  //   };
-
-  //   visualViewport.addEventListener("resize", handleWindowResize);
-
-  //   return () => {
-  //     visualViewport.removeEventListener("resize", handleWindowResize);
-  //   };
-  // }, []);
 
   return (
     <>
@@ -538,6 +497,18 @@ const App = () => {
           >
             <Environment perspective={PERSPECTIVE} />
 
+            {/* <animated.span
+              style={{
+                z: COIN_INITIAL_POSITION_Z,
+                y: -COIN_FLOOR_POSITION_Y - 50,
+                transformStyle: "preserve-3d",
+                scale: 3,
+              }}
+              className="transform-gpu neo-brut-text-shadow absolute text-3xl text-white"
+            >
+              +2
+            </animated.span> */}
+
             <animated.div
               id="coin"
               className={clsx(
@@ -552,11 +523,7 @@ const App = () => {
                 rotateY: rotationH,
               }}
             >
-              <Coin
-                radius={COIN_RADIUS}
-                depth={COIN_DEPTH}
-                // className="text-[var(--current-face-color)]"
-              />
+              <Coin radius={COIN_RADIUS} depth={COIN_DEPTH} />
             </animated.div>
           </animated.div>
 

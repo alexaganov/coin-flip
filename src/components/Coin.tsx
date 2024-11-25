@@ -5,7 +5,7 @@ import { Moon } from "./icons/Moon";
 import { Sun } from "./icons/Sun";
 import LightSweepEffect from "./LightSweepEffect";
 import { ComponentPropsWithoutRef, ComponentType } from "react";
-import { useAppStore } from "../store";
+import { useRouteSearchCoinConfig } from "../routes";
 
 interface CoinFaceProps extends ComponentPropsWithoutRef<"div"> {
   radius: number;
@@ -122,7 +122,8 @@ const CoinHead = ({
   className,
   ...props
 }: Omit<CoinFaceProps, "label" | "icon">) => {
-  const { label, icon } = useAppStore((state) => state.coinConfig.head);
+  const { config } = useRouteSearchCoinConfig();
+  const { label, icon } = config.head;
 
   return (
     <CoinFace
@@ -145,7 +146,8 @@ const CoinTail = ({
   className,
   ...props
 }: Omit<CoinFaceProps, "label" | "icon">) => {
-  const { label, icon } = useAppStore((state) => state.coinConfig.tail);
+  const { config } = useRouteSearchCoinConfig();
+  const { label, icon } = config.tail;
 
   return (
     <CoinFace

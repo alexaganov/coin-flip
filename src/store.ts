@@ -1,22 +1,13 @@
 import { create } from "zustand";
 import { APP_STATE, AppState, COIN_FACE, CoinFace } from "./type";
 import { persist } from "zustand/middleware";
-import { generateUUID } from "three/src/math/MathUtils.js";
+import { CoinConfig, CoinFaceConfig } from "./utils/coinConfig";
 
 export interface HistoryRecord {
   id: string;
   choice: CoinFace;
   outcome: CoinFace;
 }
-
-export interface CoinFaceConfig {
-  label?: string;
-  icon?: string;
-}
-
-export type CoinConfig = {
-  [key in CoinFace]: CoinFaceConfig;
-};
 
 interface AppStore {
   isAudioMuted: boolean;
@@ -32,9 +23,11 @@ interface AppStore {
   ) => void;
   setChoice: (choice: CoinFace) => void;
   setCurrentOutcome: (choice: CoinFace) => void;
+  applyOutcome: (choice: CoinFace) => void;
   setAppState: (choice: AppState) => void;
   restart: () => void;
 }
+
 export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
@@ -42,8 +35,14 @@ export const useAppStore = create<AppStore>()(
       currentChoice: COIN_FACE.HEAD,
       history: [],
       coinConfig: {
-        tail: {},
-        head: {},
+        tail: {
+          icon: "",
+          label: "",
+        },
+        head: {
+          icon: "",
+          label: "",
+        },
       },
       // history: Array.from({ length: 10 }, (_, i) => {
       //   return {
@@ -55,16 +54,17 @@ export const useAppStore = create<AppStore>()(
       currentOutcome: null,
       appState: APP_STATE.CHOICE,
       restart: () => {
-        const { history, currentChoice, currentOutcome } = get();
-
-        if (!currentOutcome) {
-          return;
-        }
+        return set({
+          appState: APP_STATE.CHOICE,
+        });
+      },
+      applyOutcome: (outcome: CoinFace) => {
+        const { history, currentChoice } = get();
 
         const newHistoryItem: HistoryRecord = {
-          id: generateUUID(),
+          id: Date.now().toString(36),
           choice: currentChoice,
-          outcome: currentOutcome,
+          outcome,
         };
 
         const MAX_HISTORY_SIZE = 50;
@@ -77,9 +77,9 @@ export const useAppStore = create<AppStore>()(
         ];
 
         return set({
-          currentChoice: currentOutcome,
-          appState: APP_STATE.CHOICE,
+          currentChoice: outcome,
           currentOutcome: null,
+          appState: APP_STATE.OUTCOME,
           history: updatedHistory,
         });
       },

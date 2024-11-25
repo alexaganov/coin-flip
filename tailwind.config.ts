@@ -40,6 +40,15 @@ const config: Config = {
       });
 
       addComponents({
+        ".neo-brut-text-shadow": {
+          textShadow: Array.from({ length: 2 }, (_, i) => {
+            const offset = i + 1;
+            return `${offset - 0.5}px ${offset - 0.5}px black, ${offset}px ${offset}px black`;
+          }).join(","),
+        },
+      });
+
+      addComponents({
         ".btn": {
           "--btn-contrast-color": "#000",
           "--btn-shadow-offset": "0.25rem",

@@ -1,4 +1,3 @@
-import React from "react";
 import { COIN_FACE, CoinFace } from "./type";
 import { CoinFaceUp } from "./components/icons/CoinFaceUp";
 import { CoinFaceDown } from "./components/icons/CoinFaceDown";
