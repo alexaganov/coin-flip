@@ -46,9 +46,12 @@ const CoinList = ({ items }: { items: HistoryRecord[] }) => {
 };
 
 const groupByStreaks = (items: HistoryRecord[]) => {
-  const groups: { id: string; items: HistoryRecord[] }[] = [];
+  const groups: { id: string; items: HistoryRecord[]; isStreak: boolean }[] =
+    [];
   let streak: HistoryRecord[] = [];
 
+  // i <= items.length to handle case when streak array
+  // has items when for loop is ended
   for (let i = 0; i <= items.length; ++i) {
     const item = items[i];
 
@@ -59,6 +62,7 @@ const groupByStreaks = (items: HistoryRecord[]) => {
         groups.push({
           id: streak[0].id,
           items: streak.reverse(),
+          isStreak: true,
         });
       }
 
@@ -66,6 +70,7 @@ const groupByStreaks = (items: HistoryRecord[]) => {
         groups.push({
           id: item.id,
           items: [item],
+          isStreak: false,
         });
       }
 
@@ -76,38 +81,49 @@ const groupByStreaks = (items: HistoryRecord[]) => {
   return groups;
 };
 
-const getLastStreakGroups = (
+const getHistoryPreviewStreakGroups = (
   items: HistoryRecord[],
   max: number
 ): { id: string; items: HistoryRecord[] }[] => {
-  const groups: { id: string; items: HistoryRecord[] }[] = [];
+  const groups: { id: string; items: HistoryRecord[]; isStreak: boolean }[] =
+    [];
   let streak: HistoryRecord[] = [];
 
-  for (let i = items.length - 1; i >= 0 && groups.length < 2; --i) {
+  for (let i = items.length - 1; i >= -1 && groups.length < 2; --i) {
     const item = items[i];
 
-    if (item.choice === item.outcome) {
+    if (item && item.choice === item.outcome) {
       streak.unshift(item);
     } else {
       if (streak.length) {
         groups.unshift({
           id: streak[0].id,
           items: streak,
+          isStreak: true,
         });
       }
 
-      groups.unshift({
-        id: item.id,
-        items: [item],
-      });
+      if (item) {
+        groups.unshift({
+          id: item.id,
+          items: [item],
+          isStreak: false,
+        });
+      }
 
       streak = [];
     }
   }
 
-  return groups.slice(
-    groups.length > 0 && groups[groups.length - 1].items.length > 1 ? -1 : -max
-  );
+  if (
+    groups.length > 0 &&
+    groups[groups.length - 1].isStreak &&
+    groups[groups.length - 1].items.length > 1
+  ) {
+    return groups.slice(-1);
+  }
+
+  return groups.slice(-max);
 };
 
 const HistoryButton = ({ className }: { className?: string }) => {
@@ -117,10 +133,9 @@ const HistoryButton = ({ className }: { className?: string }) => {
     return groupByStreaks(history).reverse();
   }, [history]);
 
-  const lastTwoStreakGroups = useMemo(
-    () => getLastStreakGroups(history, 2),
-    [history]
-  );
+  const streakPreviewGroups = useMemo(() => {
+    return getHistoryPreviewStreakGroups(history, 2);
+  }, [history]);
 
   const groupClassName =
     "relative overflow-hidden min-w-[60px] justify-end shadow-[1px_0,-1px_0] shadow-black items-center flex";
@@ -133,13 +148,16 @@ const HistoryButton = ({ className }: { className?: string }) => {
           aria-label="Open history popup"
           contentClassName="w-[7.5rem] items-stretch relative overflow-hidden px-0"
         >
-          {lastTwoStreakGroups.map((item) => {
+          {!streakPreviewGroups.length && (
+            <span className="flex-center text-gray-400">Empty!</span>
+          )}
+          {streakPreviewGroups.map((item) => {
             return (
               <div
                 key={item.id}
                 className={clsx(
                   groupClassName,
-                  lastTwoStreakGroups.length === 1 || item.items.length > 1
+                  streakPreviewGroups.length === 1 || item.items.length > 1
                     ? "w-full"
                     : "w-1/2"
                 )}
@@ -196,65 +214,94 @@ const HistoryButton = ({ className }: { className?: string }) => {
           <div className="relative pointer-events-auto flex h-[7.375rem] flex-col">
             <div className="neo-brut-shadow" />
 
-            <div className="neo-brut-card overflow-auto flex-[1_1_0]">
-              <ul className="flex h-full divide-x divide-dashed divide-gray-300">
-                {groupedByStreaks.map((group, i) => {
-                  const isBadOutcome =
-                    group.items.length === 1 &&
-                    group.items[0].choice !== group.items[0].outcome;
+            <div className="relative neo-brut-card flex overflow-auto flex-[1_1_0]">
+              {!groupedByStreaks.length && (
+                <p className="m-auto text-center text-gray-400">
+                  Empty! Throw the coin to see something.
+                </p>
+              )}
+              {!!groupedByStreaks.length && (
+                <div className="relative flex-grow h-full flex">
+                  <div
+                    className="absolute pointer-events-none w-full text-gray-200 h-full"
+                    style={{
+                      backgroundImage:
+                        "linear-gradient(-90deg, currentcolor 0px, currentcolor 1px, transparent 1px, transparent 100%)",
+                      backgroundSize: "40px",
+                    }}
+                  >
+                    <div className="absolute h-px w-full bg-gray-200 bottom-6" />
+                  </div>
+                  <ul
+                    className={clsx(
+                      "flex h-full"
+                      // "divide-x divide-dashed divide-gray-300"
+                    )}
+                  >
+                    {groupedByStreaks.map((group, i) => {
+                      const isBadOutcome =
+                        group.items.length === 1 &&
+                        group.items[0].choice !== group.items[0].outcome;
 
-                  return (
-                    <li
-                      key={group.id}
-                      className="flex h-full flex-shrink-0 flex-grow-0 basis-10 w-10 items-center flex-col justify-end"
-                    >
-                      {i === 0 && (
-                        <div className="mb-auto w-full">
-                          <div className="text-xs bg-[var(--accent-primary-color)] border-b-2 border-x-2 relative border-black -ml-0.5 -mr-px text-center">
-                            RECENT
-                          </div>
-                        </div>
-                      )}
-                      {!isBadOutcome && (
-                        <div className=" overflow-hidden flex flex-col items-center justify-end">
-                          {group.items.length > 1 && (
-                            <span className="text-sm flex flex-shrink-0">
-                              +{group.items.length}
-                            </span>
+                      return (
+                        <li
+                          key={group.id}
+                          className="flex h-full flex-shrink-0 flex-grow-0 basis-10 w-10 items-center flex-col justify-end"
+                        >
+                          {i === 0 && (
+                            <div className="mb-auto w-full">
+                              <div className="text-xs bg-[var(--accent-primary-color)] border-b-2 border-x-2 relative border-black -ml-0.5 text-center">
+                                RECENT
+                              </div>
+                            </div>
                           )}
-                          <div className="flex flex-col items-center justify-end min-h-5 pb-1">
-                            {group.items.map((item, i) => {
-                              return (
-                                <span
-                                  key={item.id}
-                                  style={{ zIndex: group.items.length - i }}
-                                  className="flex-shrink basis-4 flex justify-center first:flex-shrink-0 items-end min-h-0"
-                                >
-                                  <CoinOutcomeIcon
-                                    className="size-5"
-                                    choice={item.choice}
-                                    outcome={item.outcome}
-                                  />
+                          {!isBadOutcome && (
+                            <div className="overflow-hidden flex flex-col items-center justify-end">
+                              {group.items.length > 1 && (
+                                <span className="text-sm flex flex-shrink-0">
+                                  +{group.items.length}
                                 </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
+                              )}
+                              <div className="flex flex-col items-center justify-end min-h-5 pb-1">
+                                {group.items.map((item, i) => {
+                                  return (
+                                    <span
+                                      key={item.id}
+                                      style={{ zIndex: group.items.length - i }}
+                                      className="flex-shrink basis-4 flex justify-center first:flex-shrink-0 items-end min-h-0"
+                                    >
+                                      <CoinOutcomeIcon
+                                        className="size-5"
+                                        choice={item.choice}
+                                        outcome={item.outcome}
+                                      />
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
 
-                      <div className="flex-center aspect-square w-full h-6 flex-shrink-0 border-t border-t-gray-300">
-                        {isBadOutcome && (
-                          <CoinOutcomeIcon
-                            className="size-5 opacity-50"
-                            choice={group.items[0].choice}
-                            outcome={group.items[0].outcome}
-                          />
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                          <div
+                            className={clsx(
+                              "flex-center aspect-square w-full h-6 flex-shrink-0"
+                              // "border-t border-t-gray-300"
+                            )}
+                          >
+                            {isBadOutcome && (
+                              <CoinOutcomeIcon
+                                className="size-5 opacity-50"
+                                choice={group.items[0].choice}
+                                outcome={group.items[0].outcome}
+                              />
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </Popover.Content>

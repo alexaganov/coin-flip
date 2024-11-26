@@ -32,19 +32,17 @@ export const Environment = ({
 
   const frontDepth = perspective;
   const backDepth = perspective;
-  const topDepth = 0;
+  const topDepth = Math.max(perspective - windowInnerSize.height, 0);
   const bottomDepth = perspective / 2;
 
-  const wallsY = -height / 2 + bottomDepth / 2 + topDepth / 2;
+  const wallsY = -height / 2 + bottomDepth / 2 - topDepth / 2;
 
   const commonClassName =
-    "absolute text-gray-300 pattern-grid-[100px] size-full border-2 border-current";
+    "absolute text-black/10 pattern-grid-[100px] size-full border-2 border-current";
 
   return (
     <div
       style={{
-        // transform: "rotateX(45deg)",
-        // transformOrigin: "center bottom",
         transformStyle: "preserve-3d",
         ...style,
       }}
@@ -58,7 +56,7 @@ export const Environment = ({
         style={{
           height: height + topDepth + bottomDepth,
           width,
-          maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${windowInnerSize.height}px)`,
+          // maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${windowInnerSize.height}px)`,
           transform: styleTransform()
             .translate3d({
               z: -frontDepth,
@@ -101,8 +99,8 @@ export const Environment = ({
       <div
         style={{
           height: height + topDepth + bottomDepth,
-          width: frontDepth + backDepth, //windowInnerSize.width,
-          maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${windowInnerSize.height}px)`,
+          width: frontDepth + backDepth,
+          // maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${windowInnerSize.height}px)`,
           // maskImage: `linear-gradient(to left, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
           //   fadeOut * 100
           // }%)`,
@@ -131,8 +129,8 @@ export const Environment = ({
       <div
         style={{
           height: height + topDepth + bottomDepth,
-          width: frontDepth + backDepth, //windowInnerSize.width,
-          maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${windowInnerSize.height}px)`,
+          width: frontDepth + backDepth,
+          // maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${windowInnerSize.height}px)`,
           // maskImage: `linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
           //   fadeOut * 100
           // }%)`,
@@ -159,7 +157,7 @@ export const Environment = ({
       </div>
       <div
         style={{
-          height: frontDepth,
+          height: frontDepth + backDepth,
           width,
           // maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) ${
           //   fadeOut * 100
@@ -169,16 +167,13 @@ export const Environment = ({
           // }%)`,
           transform: styleTransform()
             .translate3d({
-              y: -height / 2,
-              // y: windowInnerSize.height / 2,
-              z: -frontDepth / 2,
+              y: -(height + topDepth),
             })
             .rotateX(90)
             .get(),
         }}
         className={clsx(
-          commonClassName,
-          "hidden"
+          commonClassName
           // "animate-[move-bg-full-bottom_10s_linear_infinite]"
         )}
       >

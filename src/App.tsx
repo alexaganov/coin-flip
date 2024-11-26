@@ -96,7 +96,7 @@ const App = () => {
   }));
 
   const [{ rotationV, positionY, rotationH }, api] = useSpring(() => ({
-    rotationH: 0,
+    rotationH: currentChoice === COIN_FACE.HEAD ? 0 : 180,
     rotationV: 0,
     positionY: COIN_INITIAL_THROW_POSITION_Y,
     onChange: (result) => {

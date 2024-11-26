@@ -67,7 +67,7 @@ export const useAppStore = create<AppStore>()(
           outcome,
         };
 
-        const MAX_HISTORY_SIZE = 50;
+        const MAX_HISTORY_SIZE = 100;
 
         const updatedHistory: HistoryRecord[] = [
           ...(history.length >= MAX_HISTORY_SIZE
@@ -106,6 +106,7 @@ export const useAppStore = create<AppStore>()(
       partialize: (state) => ({
         isAudioMuted: state.isAudioMuted,
         history: state.history,
+        currentChoice: state.currentChoice,
       }),
     }
   )
