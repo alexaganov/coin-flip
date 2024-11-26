@@ -1,11 +1,11 @@
 import { ObjectValues } from "./utils/type";
 
-export const CHOICE = {
+export const COIN_FACE = {
   HEAD: "head",
   TAIL: "tail",
 } as const;
 
-export type ChoiceType = ObjectValues<typeof CHOICE>;
+export type CoinFace = ObjectValues<typeof COIN_FACE>;
 
 export const APP_STATE = {
   CHOICE: "CHOICE",

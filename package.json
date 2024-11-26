@@ -10,23 +10,24 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@react-spring/three": "^9.7.4",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-popover": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.1",
     "@react-spring/web": "^9.7.5",
-    "@react-three/drei": "^9.112.0",
-    "@react-three/fiber": "^8.17.8",
-    "@react-three/postprocessing": "^2.16.3",
-    "@react-three/rapier": "^1.5.0",
+    "@tanstack/react-router": "^1.82.8",
     "@use-gesture/react": "^10.3.1",
     "bezier-easing": "^2.1.0",
     "clsx": "^2.1.1",
-    "postprocessing": "^6.36.4",
+    "howler": "^2.2.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-spring": "^9.7.4",
-    "three": "^0.167.1",
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@tanstack/router-devtools": "^1.82.8",
+    "@tanstack/router-plugin": "^1.81.9",
+    "@types/howler": "^2.2.12",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^7.15.0",
@@ -39,6 +40,7 @@
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
     "typescript": "^5.2.2",
-    "vite": "^5.3.4"
+    "vite": "^5.3.4",
+    "vite-plugin-pwa": "^0.21.0"
   }
 }
